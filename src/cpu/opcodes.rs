@@ -2,23 +2,23 @@ use crate::cpu::*;
 use crate::utils::*;
 
 const OPCODES: [fn(&mut Cpu) -> u8; 256] = [
-    //  0x00, 0x01, 0x02,   0x03,   0x04,   0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,   0x0B,   0x0C,   0x0D, 0x0E, 0x0F
-        nop , ld_01, todo, inc_03, inc_04, dec_05, ld_06, todo, todo, todo, ld_0a, dec_0b, inc_0c, dec_0d, todo, todo, //0x00
-        todo, ld_11, todo, inc_13, inc_14, dec_15, ld_16, todo, todo, todo, ld_1a, dec_1b, inc_1c, dec_1d, todo, todo, //0x01
-        todo, ld_21, todo, inc_23, inc_24, dec_25, ld_26, todo, todo, todo, ld_2a, dec_2b, inc_2c, dec_2d, todo, todo, //0x02
-        todo, ld_31, todo, inc_33, inc_34, dec_35, ld_36, todo, todo, todo, ld_3a, dec_3b, inc_3c, dec_3d, todo, todo, //0x03
-        ld_40, ld_41, ld_42, ld_43, ld_44, ld_45, todo, todo, ld_48, ld_49, ld_4a, ld_4b, ld_4c, ld_4d, todo, todo, //0x04
-        ld_50, ld_51, ld_52, ld_53, ld_54, ld_55, todo, todo, ld_58, ld_59, ld_5a, ld_5b, ld_5c, ld_5d, todo, todo, //0x05
-        ld_60, ld_61, ld_62, ld_63, ld_64, ld_65, todo, todo, ld_68, ld_69, ld_6a, ld_6b, ld_6c, ld_6d, todo, todo, //0x06
-        todo, todo, todo,   todo,   todo,   todo, todo, todo, todo, todo, todo,   todo,   todo,   todo, todo, todo, //0x07
-        todo, todo, todo,   todo,   todo,   todo, todo, todo, todo, todo, todo,   todo,   todo,   todo, todo, todo, //0x08
-        todo, todo, todo,   todo,   todo,   todo, todo, todo, todo, todo, todo,   todo,   todo,   todo, todo, todo, //0x09
-        todo, todo, todo,   todo,   todo,   todo, todo, todo, todo, todo, todo,   todo,   todo,   todo, todo, todo, //0x0A
-        todo, todo, todo,   todo,   todo,   todo, todo, todo, todo, todo, todo,   todo,   todo,   todo, todo, todo, //0x0B
-        todo, todo, todo,   todo,   todo,   todo, todo, todo, todo, todo, todo,   todo,   todo,   todo, todo, todo, //0x0C
-        todo, todo, todo,   todo,   todo,   todo, todo, todo, todo, todo, todo,   todo,   todo,   todo, todo, todo, //0x0D
-        ld_e0, todo, ld_e2,   todo,   todo,   todo, todo, todo, todo, todo, ld_ea,   todo,   todo,   todo, todo, todo, //0x0E
-        ld_f0, todo, ld_f2,   todo,   todo,   todo, todo, todo, ld_f8, ld_f9, ld_fa,   todo,   todo,   todo, todo, todo, //0x0F
+    //  0x00,   0x01, 0x02,    0x03,   0x04,   0x05,  0x06,  0x07,  0x08,  0x09,  0x0A,   0x0B,   0x0C,   0x0D, 0x0E,   0x0F
+        nop ,  ld_01, ld_02, inc_03, inc_04, dec_05, ld_06,  todo, ld_08,  todo, ld_0a, dec_0b, inc_0c, dec_0d, ld_0e,  todo, //0x00
+        todo,  ld_11, ld_12, inc_13, inc_14, dec_15, ld_16,  todo,  todo,  todo, ld_1a, dec_1b, inc_1c, dec_1d, ld_1e,  todo, //0x01
+        todo,  ld_21, ld_22, inc_23, inc_24, dec_25, ld_26,  todo,  todo,  todo, ld_2a, dec_2b, inc_2c, dec_2d, ld_2e,  todo, //0x02
+        todo,  ld_31, ld_32, inc_33, inc_34, dec_35, ld_36,  todo,  todo,  todo, ld_3a, dec_3b, inc_3c, dec_3d, ld_3e,  todo, //0x03
+        ld_40, ld_41, ld_42,  ld_43,  ld_44,  ld_45, ld_46, ld_47, ld_48, ld_49, ld_4a,  ld_4b,  ld_4c,  ld_4d, ld_4e, ld_4f, //0x04
+        ld_50, ld_51, ld_52,  ld_53,  ld_54,  ld_55, ld_56, ld_57, ld_58, ld_59, ld_5a,  ld_5b,  ld_5c,  ld_5d, ld_5e, ld_5f, //0x05
+        ld_60, ld_61, ld_62,  ld_63,  ld_64,  ld_65, ld_66, ld_67, ld_68, ld_69, ld_6a,  ld_6b,  ld_6c,  ld_6d, ld_6e, ld_6f, //0x06
+        ld_70, ld_71, ld_72,  ld_73,  ld_74,  ld_75,  todo, ld_77, ld_78, ld_79, ld_7a,  ld_7b,  ld_7c,  ld_7d, ld_7e, ld_7f, //0x07
+        todo,  todo,   todo,   todo,   todo,   todo,  todo,  todo,  todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x08
+        todo,  todo,   todo,   todo,   todo,   todo,  todo,  todo,  todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x09
+        todo,  todo,   todo,   todo,   todo,   todo,  todo,  todo,  todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0A
+        todo,  todo,   todo,   todo,   todo,   todo,  todo,  todo,  todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0B
+        todo,  todo,   todo,   todo,   todo,   todo,  todo,  todo,  todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0C
+        todo,  todo,   todo,   todo,   todo,   todo,  todo,  todo,  todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0D
+        ld_e0, todo,  ld_e2,   todo,   todo,   todo,  todo,  todo,  todo,  todo, ld_ea,   todo,   todo,   todo,  todo,  todo, //0x0E
+        ld_f0, todo,  ld_f2,   todo,   todo,   todo,  todo,  todo, ld_f8, ld_f9, ld_fa,   todo,   todo,   todo,  todo,  todo, //0x0F
 ];
 
 fn todo(cpu: &mut Cpu) -> u8 {
@@ -582,6 +582,186 @@ fn ld_f8(cpu: &mut Cpu) -> u8 {
 fn ld_f9(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r16(Registers16::HL);
     cpu.set_r16(Registers16::SP, value);
+    2
+}
+
+//LD (BC), A
+fn ld_02(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    let addr = cpu.get_r16(Registers16::BC);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (DE), A
+fn ld_12(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    let addr = cpu.get_r16(Registers16::DE);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (HL+), A
+fn ld_22(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    cpu.set_r16(Registers16::HL, addr.wrapping_add(1));
+    2
+}
+//LD (HL-), A
+fn ld_32(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    cpu.set_r16(Registers16::HL, addr.wrapping_sub(1));
+    2
+}
+
+//LD (HL), B
+fn ld_70(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::B);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (HL), C
+fn ld_71(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::C);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (HL), D
+fn ld_72(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::D);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (HL), E
+fn ld_73(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::E);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (HL), H
+fn ld_74(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::H);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (HL), L
+fn ld_75(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::L);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    2
+}
+//LD (HL), A
+fn ld_77(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.write_ram(addr, value);
+    2
+}
+
+//LD B, (HL)
+fn ld_46(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    let value = cpu.read_ram(addr);
+    cpu.set_r8(Registers::B, value);
+    2
+}
+//LD D, (HL)
+fn ld_56(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    let value = cpu.read_ram(addr);
+    cpu.set_r8(Registers::D, value);
+    2
+}
+//LD H, (HL)
+fn ld_66(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    let value = cpu.read_ram(addr);
+    cpu.set_r8(Registers::H, value);
+    2
+}
+
+//LD C, (HL)
+fn ld_4e(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    let value = cpu.read_ram(addr);
+    cpu.set_r8(Registers::C, value);
+    2
+}
+//LD E, (HL)
+fn ld_5e(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    let value = cpu.read_ram(addr);
+    cpu.set_r8(Registers::E, value);
+    2
+}
+//LD L, (HL)
+fn ld_6e(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    let value = cpu.read_ram(addr);
+    cpu.set_r8(Registers::L, value);
+    2
+}
+//LD A, (HL)
+fn ld_7e(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    let value = cpu.read_ram(addr);
+    cpu.set_r8(Registers::A, value);
+    2
+}
+
+//LD C, A
+fn ld_4f(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    cpu.set_r8(Registers::C, value);
+    1
+}
+//LD E, A
+fn ld_5f(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    cpu.set_r8(Registers::E, value);
+    1
+}
+//LD L, A
+fn ld_6f(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    cpu.set_r8(Registers::L, value);
+    1
+}
+//LD A, A
+fn ld_7f(cpu: &mut Cpu) -> u8 {
+    1
+}
+
+//LD C, u8
+fn ld_0e(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.set_r8(Registers::C, value);
+    2
+}
+//LD E, u8
+fn ld_1e(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.set_r8(Registers::E, value);
+    2
+}
+//LD L, u8
+fn ld_2e(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.set_r8(Registers::L, value);
+    2
+}
+//LD A, u8
+fn ld_3e(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.set_r8(Registers::A, value);
     2
 }
 
