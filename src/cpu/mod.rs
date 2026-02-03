@@ -13,6 +13,8 @@ pub struct Cpu {
     f: u8,
     h: u8,
     l: u8,
+    irq_enabled: bool,
+    halted: bool,
 }
 
 impl Cpu {
@@ -28,6 +30,8 @@ impl Cpu {
             f: 0x00,
             h: 0x00,
             l: 0x00,
+            irq_enabled: false,
+            halted: false,
         }
     }
 
@@ -323,6 +327,70 @@ impl Cpu {
         self.set_flag(Flags::S, false);
         self.set_flag(Flags::HC, false);
         self.set_flag(Flags::C, lsb);
+    }
+
+    pub fn shift_left(&mut self, reg: Registers) {
+        let value = self.get_r8(reg);
+        let msb = value.get_bit(7);
+        let res = value.wrapping_shl(1);
+
+        self.set_r8(reg, res);
+        self.set_flag(Flags::Z, res == 0);
+        self.set_flag(Flags::S, false);
+        self.set_flag(Flags::HC, false);
+        self.set_flag(Flags::C, msb);
+    }
+
+    pub fn shift_right(&mut self, reg: Registers, arithmetic: bool) {
+        let value = self.get_r8(reg);
+        let lsb = value.get_bit(0);
+        let msb = value.get_bit(7);
+        let mut res = value.wrapping_shr(1);
+        if arithmetic {
+            res.set_bit(7, msb);
+        }
+
+        self.set_r8(reg, res);
+        self.set_flag(Flags::Z, res == 0);
+        self.set_flag(Flags::S, false);
+        self.set_flag(Flags::HC, false);
+        self.set_flag(Flags::C, lsb);
+    }
+
+    pub fn swap_bits(&mut self, reg: Registers) {
+        let value = self.get_r8(reg);
+        let low = value & 0xF;
+        let high = (value & 0xF0) >> 4;
+        let res = (low << 4) | high;
+
+        self.set_r8(reg, res);
+        self.set_flag(Flags::Z, res == 0);
+        self.set_flag(Flags::S, false);
+        self.set_flag(Flags::HC, false);
+        self.set_flag(Flags::C, false);
+    }
+
+    pub fn test_bit(&mut self, reg: Registers, bit: u8) {
+        let byte = self.get_r8(reg);
+        let value = byte.get_bit(bit);
+
+        self.set_flag(Flags::Z, !value);
+        self.set_flag(Flags::S, false);
+        self.set_flag(Flags::HC, true);
+    }
+
+    pub fn write_bit(&mut self, reg: Registers, bit: u8, set: bool){
+        let mut byte = self.get_r8(reg);
+        byte.set_bit(bit, set);
+        self.set_r8(reg, byte);
+    }
+
+    pub fn set_irq(&mut self, enabled: bool) {
+        self.irq_enabled = enabled;
+    }
+
+    pub fn set_halted(&mut self, halted: bool){
+        self.halted = halted;
     }
 }
 
