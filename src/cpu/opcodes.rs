@@ -2,23 +2,23 @@ use crate::cpu::*;
 use crate::utils::*;
 
 const OPCODES: [fn(&mut Cpu) -> u8; 256] = [
-    //    0x00,  0x01,    0x02,   0x03,   0x04,    0x05,   0x06,   0x07,   0x08,   0x09,   0x0A,   0x0B,   0x0C,   0x0D,   0x0E,   0x0F
-          nop ,  ld_01,  ld_02, inc_03, inc_04,  dec_05,  ld_06,   todo,  ld_08, add_09,  ld_0a, dec_0b, inc_0c, dec_0d,  ld_0e,   todo, //0x00
-          todo,  ld_11,  ld_12, inc_13, inc_14,  dec_15,  ld_16,   todo,   todo, add_19,  ld_1a, dec_1b, inc_1c, dec_1d,  ld_1e,   todo, //0x01
-          todo,  ld_21,  ld_22, inc_23, inc_24,  dec_25,  ld_26,   todo,   todo, add_29,  ld_2a, dec_2b, inc_2c, dec_2d,  ld_2e,   todo, //0x02
-          todo,  ld_31,  ld_32, inc_33, inc_34,  dec_35,  ld_36,   todo,   todo, add_39,  ld_3a, dec_3b, inc_3c, dec_3d,  ld_3e,   todo, //0x03
-         ld_40,  ld_41,  ld_42,  ld_43,  ld_44,   ld_45,  ld_46,  ld_47,  ld_48,  ld_49,  ld_4a,  ld_4b,  ld_4c,  ld_4d,  ld_4e,  ld_4f, //0x04
-         ld_50,  ld_51,  ld_52,  ld_53,  ld_54,   ld_55,  ld_56,  ld_57,  ld_58,  ld_59,  ld_5a,  ld_5b,  ld_5c,  ld_5d,  ld_5e,  ld_5f, //0x05
-         ld_60,  ld_61,  ld_62,  ld_63,  ld_64,   ld_65,  ld_66,  ld_67,  ld_68,  ld_69,  ld_6a,  ld_6b,  ld_6c,  ld_6d,  ld_6e,  ld_6f, //0x06
-         ld_70,  ld_71,  ld_72,  ld_73,  ld_74,   ld_75,   todo,  ld_77,  ld_78,  ld_79,  ld_7a,  ld_7b,  ld_7c,  ld_7d,  ld_7e,  ld_7f, //0x07
-        add_80, add_81, add_82, add_83, add_84,  add_85, add_86, add_87, adc_88, adc_89, adc_8a, adc_8b, adc_8c, adc_8d, adc_8e, adc_8f, //0x08
-        sub_90, sub_91, sub_92, sub_93, sub_94,  sub_95, sub_96, sub_97, sbc_98, sbc_99, sbc_9a, sbc_9b, sbc_9c, sbc_9d, sbc_9e, sbc_9f, //0x09
-        and_a0, and_a1, and_a2, and_a3, and_a4,  and_a5, and_a6, and_a7, xor_a8, xor_a9, xor_aa, xor_ab, xor_ac, xor_ad, xor_ae, xor_af, //0x0A
-         or_b0,  or_b1,  or_b2,  or_b3,  or_b4,   or_b5,  or_b6,  or_b7,  cp_b8,  cp_b9,  cp_ba,  cp_bb,  cp_bc,  cp_bd,  cp_be,  cp_bf, //0x0B
-          todo, pop_c1,   todo,   todo,   todo, push_c5, add_c6,   todo,   todo,   todo,   todo,   todo,   todo,   todo, adc_ce,   todo, //0x0C
-          todo, pop_d1,   todo,   todo,   todo, push_d5, sub_d6,   todo,   todo,   todo,   todo,   todo,   todo,   todo, sbc_de,   todo, //0x0D
-         ld_e0, pop_e1,  ld_e2,   todo,   todo, push_e5, and_e6,   todo, add_e8,   todo,  ld_ea,   todo,   todo,   todo, xor_ee,   todo, //0x0E
-         ld_f0, pop_f1,  ld_f2,   todo,   todo, push_f5,  or_f6,   todo,  ld_f8,  ld_f9,  ld_fa,   todo,   todo,   todo,  cp_fe,   todo, //0x0F
+    //    0x00,  0x01,    0x02,   0x03,    0x04,    0x05,   0x06,   0x07,   0x08,   0x09,   0x0A,   0x0B,    0x0C,    0x0D,   0x0E,   0x0F
+          nop ,  ld_01,  ld_02, inc_03,  inc_04,  dec_05,  ld_06,   todo,  ld_08, add_09,  ld_0a, dec_0b,  inc_0c,  dec_0d,  ld_0e,   todo, //0x00
+          todo,  ld_11,  ld_12, inc_13,  inc_14,  dec_15,  ld_16,   todo,  jr_18, add_19,  ld_1a, dec_1b,  inc_1c,  dec_1d,  ld_1e,   todo, //0x01
+         jr_20,  ld_21,  ld_22, inc_23,  inc_24,  dec_25,  ld_26,   todo,  jr_28, add_29,  ld_2a, dec_2b,  inc_2c,  dec_2d,  ld_2e,   todo, //0x02
+         jr_30,  ld_31,  ld_32, inc_33,  inc_34,  dec_35,  ld_36,   todo,  jr_38, add_39,  ld_3a, dec_3b,  inc_3c,  dec_3d,  ld_3e,   todo, //0x03
+         ld_40,  ld_41,  ld_42,  ld_43,   ld_44,   ld_45,  ld_46,  ld_47,  ld_48,  ld_49,  ld_4a,  ld_4b,   ld_4c,   ld_4d,  ld_4e,  ld_4f, //0x04
+         ld_50,  ld_51,  ld_52,  ld_53,   ld_54,   ld_55,  ld_56,  ld_57,  ld_58,  ld_59,  ld_5a,  ld_5b,   ld_5c,   ld_5d,  ld_5e,  ld_5f, //0x05
+         ld_60,  ld_61,  ld_62,  ld_63,   ld_64,   ld_65,  ld_66,  ld_67,  ld_68,  ld_69,  ld_6a,  ld_6b,   ld_6c,   ld_6d,  ld_6e,  ld_6f, //0x06
+         ld_70,  ld_71,  ld_72,  ld_73,   ld_74,   ld_75,   todo,  ld_77,  ld_78,  ld_79,  ld_7a,  ld_7b,   ld_7c,   ld_7d,  ld_7e,  ld_7f, //0x07
+        add_80, add_81, add_82, add_83,  add_84,  add_85, add_86, add_87, adc_88, adc_89, adc_8a, adc_8b,  adc_8c,  adc_8d, adc_8e, adc_8f, //0x08
+        sub_90, sub_91, sub_92, sub_93,  sub_94,  sub_95, sub_96, sub_97, sbc_98, sbc_99, sbc_9a, sbc_9b,  sbc_9c,  sbc_9d, sbc_9e, sbc_9f, //0x09
+        and_a0, and_a1, and_a2, and_a3,  and_a4,  and_a5, and_a6, and_a7, xor_a8, xor_a9, xor_aa, xor_ab,  xor_ac,  xor_ad, xor_ae, xor_af, //0x0A
+         or_b0,  or_b1,  or_b2,  or_b3,   or_b4,   or_b5,  or_b6,  or_b7,  cp_b8,  cp_b9,  cp_ba,  cp_bb,   cp_bc,   cp_bd,  cp_be,  cp_bf, //0x0B
+        ret_c0, pop_c1,  jp_c2,  jp_c3, call_c4, push_c5, add_c6, rst_c7, ret_c8, ret_c9,  jp_ca,   todo, call_cc, call_cd, adc_ce, rst_cf, //0x0C
+        ret_d0, pop_d1,  jp_d2,   todo, call_d4, push_d5, sub_d6, rst_d7, ret_d8,   todo,  jp_da,   todo, call_dc,    todo, sbc_de, rst_df, //0x0D
+         ld_e0, pop_e1,  ld_e2,   todo,    todo, push_e5, and_e6, rst_e7, add_e8,  jp_e9,  ld_ea,   todo,    todo,    todo, xor_ee, rst_ef, //0x0E
+         ld_f0, pop_f1,  ld_f2,   todo,    todo, push_f5,  or_f6, rst_f7,  ld_f8,  ld_f9,  ld_fa,   todo,    todo,    todo,  cp_fe, rst_ff, //0x0F
 ];
 
 fn todo(cpu: &mut Cpu) -> u8 {
@@ -1293,8 +1293,317 @@ fn push_f5(cpu: &mut Cpu) -> u8 {
     4
 }
 
+fn jr_18(cpu: &mut Cpu) -> u8 {
+    let offset = cpu.fetch() as i8 as u16;
+    let mut pc = cpu.get_pc();
+    pc = pc.wrapping_add(offset);
+    cpu.set_pc(pc);
+    3
+}
+//JR Z, i8
+fn jr_28(cpu: &mut Cpu) -> u8 {
+    let offset = cpu.fetch() as i8 as u16;
+    let mut pc = cpu.get_pc();
+    pc = pc.wrapping_add(offset);
+    if cpu.get_flag(Flags::Z) {
+        cpu.set_pc(pc);
+        3
+    } else {
+        2
+    }
+}
+//JR C, i8
+fn jr_38(cpu: &mut Cpu) -> u8 {
+    let offset = cpu.fetch() as i8 as u16;
+    let mut pc = cpu.get_pc();
+    pc = pc.wrapping_add(offset);
+    if cpu.get_flag(Flags::C) {
+        cpu.set_pc(pc);
+        3
+    } else {
+        2
+    }
+}
+//JR NZ, i8
+fn jr_20(cpu: &mut Cpu) -> u8 {
+    let offset = cpu.fetch() as i8 as u16;
+    let mut pc = cpu.get_pc();
+    pc = pc.wrapping_add(offset);
+    if !cpu.get_flag(Flags::Z) {
+        cpu.set_pc(pc);
+        3
+    } else {
+        2
+    }
+}
+//JR NC, i8
+fn jr_30(cpu: &mut Cpu) -> u8 {
+    let offset = cpu.fetch() as i8 as u16;
+    let mut pc = cpu.get_pc();
+    pc = pc.wrapping_add(offset);
+    if !cpu.get_flag(Flags::C) {
+        cpu.set_pc(pc);
+        3
+    } else {
+        2
+    }
+}
+
+fn jp_c3(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    cpu.set_pc(addr);
+    2
+}
+
+//JP NZ, u16 (----)
+fn jp_c2(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if !cpu.get_flag(Flags::Z) {
+        cpu.set_pc(addr);
+        4
+    } else {
+        3
+    }
+}
+//JP NC, u16 (----)
+fn jp_d2(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if !cpu.get_flag(Flags::C) {
+        cpu.set_pc(addr);
+        4
+    } else {
+        3
+    }
+}
+
+//JP HL (----)
+fn jp_e9(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.get_r16(Registers16::HL);
+    cpu.set_pc(addr);
+    1
+}
+
+//JP Z, u16
+fn jp_ca(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if cpu.get_flag(Flags::Z) {
+        cpu.set_pc(addr);
+        4
+    } else {
+        3
+    }
+}
+//JP C, u16
+fn jp_da(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if cpu.get_flag(Flags::C) {
+        cpu.set_pc(addr);
+        4
+    } else {
+        3
+    }
+}
+
+//CALL u16
+fn call_cd(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(addr);
+    6
+}
+//CALL Z, u16
+fn call_cc(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if cpu.get_flag(Flags::Z) {
+        cpu.push(cpu.get_pc());
+        cpu.set_pc(addr);
+        6
+    } else {
+        3
+    }
+}
+//CALL C, u16
+fn call_dc(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if cpu.get_flag(Flags::C) {
+        cpu.push(cpu.get_pc());
+        cpu.set_pc(addr);
+        6
+    } else {
+        3
+    }
+}
+//CALL NZ, u16
+fn call_c4(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if !cpu.get_flag(Flags::Z) {
+        cpu.push(cpu.get_pc());
+        cpu.set_pc(addr);
+        6
+    } else {
+        3
+    }
+}
+//CALL NC, u16
+fn call_d4(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.fetch_u16();
+    if !cpu.get_flag(Flags::C) {
+        cpu.push(cpu.get_pc());
+        cpu.set_pc(addr);
+        6
+    } else {
+        3
+    }
+}
+
+//RET
+fn ret_c9(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.pop();
+    cpu.set_pc(addr);
+    4
+}
+//RET NZ
+fn ret_c0(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.pop();
+    if !cpu.get_flag(Flags::Z) {
+        cpu.set_pc(addr);
+        5
+    } else {
+        2
+    }
+}
+//RET NC
+fn ret_d0(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.pop();
+    if !cpu.get_flag(Flags::C) {
+        cpu.set_pc(addr);
+        5
+    } else {
+        2
+    }
+}
+//RET Z
+fn ret_c8(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.pop();
+    if cpu.get_flag(Flags::Z) {
+        cpu.set_pc(addr);
+        5
+    } else {
+        2
+    }
+}
+//RET C
+fn ret_d8(cpu: &mut Cpu) -> u8 {
+    let addr = cpu.pop();
+    if cpu.get_flag(Flags::C) {
+        cpu.set_pc(addr);
+        5
+    } else {
+        2
+    }
+}
+
+//RST 08h
+fn rst_cf(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0008);
+    4
+}
+//RST 18h
+fn rst_df(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0018);
+    4
+}
+//RST 28h
+fn rst_ef(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0028);
+    4
+}
+//RST 38h
+fn rst_ff(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0038);
+    4
+}
+//RST 00h
+fn rst_c7(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0000);
+    4
+}
+//RST 10h
+fn rst_d7(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0010);
+    4
+}
+//RST 20h
+fn rst_e7(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0020);
+    4
+}
+//RST 30h
+fn rst_f7(cpu: &mut Cpu) -> u8 {
+    cpu.push(cpu.get_pc());
+    cpu.set_pc(0x0030);
+    4
+}
+
 pub fn execute(cpu: &mut Cpu) -> u8 {
     let op_idx = cpu.fetch();
     OPCODES[op_idx as usize](cpu);
     return 0;
+}
+
+//------------------------2nd table ----------------------------
+fn prefix_cb(cpu: &mut Cpu) -> u8 {
+    let cb_index = cpu.fetch();
+    execute_cb(cpu, cb_index);
+}
+
+fn get_cb_reg(op: u8) -> Registers {
+    match op & 0b111 {
+        0 => Registers::B,
+        1 => Registers::C,
+        2 => Registers::D,
+        3 => Registers::E,
+        4 => Registers::HL,
+        5 => Registers::H,
+        6 => Registers::L,
+        7 => Registers::A,
+        _ => unreachable!(),
+    }
+}
+
+fn execute_cb(cpu: &mut Cpu, op: u8) -> u8 {
+   // 0x00-0x07 -> RLC
+   // 0x08-0x0F -> RRC
+   // 0x10-0x17 -> RL
+   // 0x18-0x1F -> RR
+   // 0x20-0x27 -> SLA
+   // 0x28-0x2F -> SRA
+   // 0x30-0x37 -> SWAP
+   // 0x38-0x3F -> SRL
+   // 0x40-0x7F -> BIT
+   // 0x80-0xBF -> RES
+   // 0xC0-0xFF -> SET
+
+   let cb_reg = get_cb_reg(op);
+   match op {
+       0x00..=0x07 => { cpu.rotate_left(cb_reg, true); },
+       0x08..=0x0F => { cpu.rotate_right(cb_reg, true); },
+       0x10..=0x17 => { cpu.rotate_left(cb_reg, false); },
+       0x18..=0x1F => { cpu.rotate_right(cb_reg, false); },
+       0x20..=0x27 => { unimplemented!(); },
+       0x28..=0x2F => { unimplemented!(); },
+       0x30..=0x37 => { unimplemented!(); },
+       0x38..=0x3F => { unimplemented!(); },
+       0x40..=0x7F => { unimplemented!(); },
+       0x80..=0xBF => { unimplemented!(); },
+       0xC0..=0xFF => { unimplemented!(); },
+   }
+   2
 }

@@ -289,6 +289,41 @@ impl Cpu {
         self.write_ram(self.sp, value.low_byte());
         self.write_ram(self.sp, value.high_byte());
     }
+
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
+    pub fn set_pc(&mut self, value: u16) {
+        self.pc = value;
+    }
+
+    pub fn rotate_left(&mut self, reg: Registers, carry: bool) {
+        let value = self.get_r8(reg);
+        let msb = value.get_bit(7);
+        let mut new = value.rotate_left(1);
+        if carry {
+            new.set_bit(0, self.get_flag(Flags::C));
+        }
+        self.set_r8(reg, new);
+        self.set_flag(Flags::Z, new == 0);
+        self.set_flag(Flags::S, false);
+        self.set_flag(Flags::HC, false);
+        self.set_flag(Flags::C, msb);
+    }
+
+    pub fn rotate_right(&mut self, reg: Registers, carry: bool) {
+        let value = self.get_r8(reg);
+        let lsb = value.get_bit(0);
+        let mut new = value.rotate_right(1);
+        if carry {
+            new.set_bit(7, self.get_flag(Flags::C));
+        }
+        self.set_r8(reg, new);
+        self.set_flag(Flags::Z, new == 0);
+        self.set_flag(Flags::S, false);
+        self.set_flag(Flags::HC, false);
+        self.set_flag(Flags::C, lsb);
+    }
 }
 
 #[derive(Copy, Clone)]
