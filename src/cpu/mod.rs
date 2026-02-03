@@ -135,7 +135,7 @@ impl Cpu {
     pub fn fetch_u16(&mut self) -> u16 {
         let low = self.fetch();
         let high = self.fetch();
-        let value = merge_bytes(low, high);
+        let value = merge_bytes(high, low);
         value
     }
 
@@ -199,7 +199,7 @@ impl Cpu {
         self.set_r8(Registers::A, a);
         self.set_flag(Flags::Z, a==0);
         self.set_flag(Flags::S, false);
-        self.set_flag(Flags::HC, true);
+        self.set_flag(Flags::HC, false);
         self.set_flag(Flags::C, false);
     }
 
@@ -210,7 +210,7 @@ impl Cpu {
         self.set_r8(Registers::A, a);
         self.set_flag(Flags::Z, a==0);
         self.set_flag(Flags::S, false);
-        self.set_flag(Flags::HC, true);
+        self.set_flag(Flags::HC, false);
         self.set_flag(Flags::C, false);
     }
 
@@ -273,6 +273,21 @@ impl Cpu {
         self.set_flag(Flags::S, false);
         self.set_flag(Flags::HC, set_h);
         self.set_flag(Flags::C, res.1);
+    }
+
+    pub fn pop(&mut self) -> u16 {
+        assert_ne!(self.sp, 0xFFFE, "Stack mustn't be empty when trying to pop!");
+        let low = self.read_ram(self.sp);
+        let high = self.read_ram(self.sp+1);
+        let value = merge_bytes(high, low);
+        self.sp += 2;
+        value
+    }
+
+    pub fn push(&mut self, value: u16) {
+        self.sp -= 2;
+        self.write_ram(self.sp, value.low_byte());
+        self.write_ram(self.sp, value.high_byte());
     }
 }
 

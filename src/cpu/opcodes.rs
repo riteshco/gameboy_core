@@ -2,23 +2,23 @@ use crate::cpu::*;
 use crate::utils::*;
 
 const OPCODES: [fn(&mut Cpu) -> u8; 256] = [
-    //    0x00,  0x01,  0x02,   0x03,   0x04,   0x05,  0x06,  0x07,   0x08,   0x09,  0x0A,   0x0B,   0x0C,   0x0D,  0x0E,  0x0F
-          nop , ld_01, ld_02, inc_03, inc_04, dec_05, ld_06,  todo,  ld_08, add_09, ld_0a, dec_0b, inc_0c, dec_0d, ld_0e,  todo, //0x00
-          todo, ld_11, ld_12, inc_13, inc_14, dec_15, ld_16,  todo,   todo, add_19, ld_1a, dec_1b, inc_1c, dec_1d, ld_1e,  todo, //0x01
-          todo, ld_21, ld_22, inc_23, inc_24, dec_25, ld_26,  todo,   todo, add_29, ld_2a, dec_2b, inc_2c, dec_2d, ld_2e,  todo, //0x02
-          todo, ld_31, ld_32, inc_33, inc_34, dec_35, ld_36,  todo,   todo, add_39, ld_3a, dec_3b, inc_3c, dec_3d, ld_3e,  todo, //0x03
-         ld_40, ld_41, ld_42,  ld_43,  ld_44,  ld_45, ld_46, ld_47,  ld_48,  ld_49, ld_4a,  ld_4b,  ld_4c,  ld_4d, ld_4e, ld_4f, //0x04
-         ld_50, ld_51, ld_52,  ld_53,  ld_54,  ld_55, ld_56, ld_57,  ld_58,  ld_59, ld_5a,  ld_5b,  ld_5c,  ld_5d, ld_5e, ld_5f, //0x05
-         ld_60, ld_61, ld_62,  ld_63,  ld_64,  ld_65, ld_66, ld_67,  ld_68,  ld_69, ld_6a,  ld_6b,  ld_6c,  ld_6d, ld_6e, ld_6f, //0x06
-         ld_70, ld_71, ld_72,  ld_73,  ld_74,  ld_75,  todo, ld_77,  ld_78,  ld_79, ld_7a,  ld_7b,  ld_7c,  ld_7d, ld_7e, ld_7f, //0x07
-        add_80, add_81, add_82, add_83, add_84, add_85, add_86, add_87, add_88, add_89, add_8a, add_8b, add_8c, add_8d, add_8e, add_8f, //0x08
-        sub_90, sub_91, sub_92, sub_93, sub_94, sub_95, sub_96, sub_97, sub_98, sub_99, sub_9a, sub_9b, sub_9c, sub_9d, sub_9e, sub_9f, //0x09
-          todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo,   todo,   todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0A
-          todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo,   todo,   todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0B
-          todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo,   todo,   todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0C
-          todo,  todo,  todo,   todo,   todo,   todo,  todo,  todo,   todo,   todo,  todo,   todo,   todo,   todo,  todo,  todo, //0x0D
-         ld_e0,  todo, ld_e2,   todo,   todo,   todo,  todo,  todo, add_e8,   todo, ld_ea,   todo,   todo,   todo,  todo,  todo, //0x0E
-         ld_f0,  todo, ld_f2,   todo,   todo,   todo,  todo,  todo,  ld_f8,  ld_f9, ld_fa,   todo,   todo,   todo,  todo,  todo, //0x0F
+    //    0x00,  0x01,    0x02,   0x03,   0x04,    0x05,   0x06,   0x07,   0x08,   0x09,   0x0A,   0x0B,   0x0C,   0x0D,   0x0E,   0x0F
+          nop ,  ld_01,  ld_02, inc_03, inc_04,  dec_05,  ld_06,   todo,  ld_08, add_09,  ld_0a, dec_0b, inc_0c, dec_0d,  ld_0e,   todo, //0x00
+          todo,  ld_11,  ld_12, inc_13, inc_14,  dec_15,  ld_16,   todo,   todo, add_19,  ld_1a, dec_1b, inc_1c, dec_1d,  ld_1e,   todo, //0x01
+          todo,  ld_21,  ld_22, inc_23, inc_24,  dec_25,  ld_26,   todo,   todo, add_29,  ld_2a, dec_2b, inc_2c, dec_2d,  ld_2e,   todo, //0x02
+          todo,  ld_31,  ld_32, inc_33, inc_34,  dec_35,  ld_36,   todo,   todo, add_39,  ld_3a, dec_3b, inc_3c, dec_3d,  ld_3e,   todo, //0x03
+         ld_40,  ld_41,  ld_42,  ld_43,  ld_44,   ld_45,  ld_46,  ld_47,  ld_48,  ld_49,  ld_4a,  ld_4b,  ld_4c,  ld_4d,  ld_4e,  ld_4f, //0x04
+         ld_50,  ld_51,  ld_52,  ld_53,  ld_54,   ld_55,  ld_56,  ld_57,  ld_58,  ld_59,  ld_5a,  ld_5b,  ld_5c,  ld_5d,  ld_5e,  ld_5f, //0x05
+         ld_60,  ld_61,  ld_62,  ld_63,  ld_64,   ld_65,  ld_66,  ld_67,  ld_68,  ld_69,  ld_6a,  ld_6b,  ld_6c,  ld_6d,  ld_6e,  ld_6f, //0x06
+         ld_70,  ld_71,  ld_72,  ld_73,  ld_74,   ld_75,   todo,  ld_77,  ld_78,  ld_79,  ld_7a,  ld_7b,  ld_7c,  ld_7d,  ld_7e,  ld_7f, //0x07
+        add_80, add_81, add_82, add_83, add_84,  add_85, add_86, add_87, adc_88, adc_89, adc_8a, adc_8b, adc_8c, adc_8d, adc_8e, adc_8f, //0x08
+        sub_90, sub_91, sub_92, sub_93, sub_94,  sub_95, sub_96, sub_97, sbc_98, sbc_99, sbc_9a, sbc_9b, sbc_9c, sbc_9d, sbc_9e, sbc_9f, //0x09
+        and_a0, and_a1, and_a2, and_a3, and_a4,  and_a5, and_a6, and_a7, xor_a8, xor_a9, xor_aa, xor_ab, xor_ac, xor_ad, xor_ae, xor_af, //0x0A
+         or_b0,  or_b1,  or_b2,  or_b3,  or_b4,   or_b5,  or_b6,  or_b7,  cp_b8,  cp_b9,  cp_ba,  cp_bb,  cp_bc,  cp_bd,  cp_be,  cp_bf, //0x0B
+          todo, pop_c1,   todo,   todo,   todo, push_c5, add_c6,   todo,   todo,   todo,   todo,   todo,   todo,   todo, adc_ce,   todo, //0x0C
+          todo, pop_d1,   todo,   todo,   todo, push_d5, sub_d6,   todo,   todo,   todo,   todo,   todo,   todo,   todo, sbc_de,   todo, //0x0D
+         ld_e0, pop_e1,  ld_e2,   todo,   todo, push_e5, and_e6,   todo, add_e8,   todo,  ld_ea,   todo,   todo,   todo, xor_ee,   todo, //0x0E
+         ld_f0, pop_f1,  ld_f2,   todo,   todo, push_f5,  or_f6,   todo,  ld_f8,  ld_f9,  ld_fa,   todo,   todo,   todo,  cp_fe,   todo, //0x0F
 ];
 
 fn todo(cpu: &mut Cpu) -> u8 {
@@ -885,49 +885,49 @@ fn sub_97(cpu: &mut Cpu) -> u8 {
 }
 
 //SBC A, B (ZIHC)
-fn sub_98(cpu: &mut Cpu) -> u8 {
+fn sbc_98(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::B);
     cpu.sub_a_u8(value, true);
     1
 }
 //SBC A, C (ZIHC)
-fn sub_99(cpu: &mut Cpu) -> u8 {
+fn sbc_99(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::C);
     cpu.sub_a_u8(value, true);
     1
 }
 //SBC A, D (ZIHC)
-fn sub_9a(cpu: &mut Cpu) -> u8 {
+fn sbc_9a(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::D);
     cpu.sub_a_u8(value, true);
     1
 }
 //SBC A, E (ZIHC)
-fn sub_9b(cpu: &mut Cpu) -> u8 {
+fn sbc_9b(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::E);
     cpu.sub_a_u8(value, true);
     1
 }
 //SBC A, H (ZIHC)
-fn sub_9c(cpu: &mut Cpu) -> u8 {
+fn sbc_9c(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::H);
     cpu.sub_a_u8(value, true);
     1
 }
 //SBC A, L (ZIHC)
-fn sub_9d(cpu: &mut Cpu) -> u8 {
+fn sbc_9d(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::L);
     cpu.sub_a_u8(value, true);
     1
 }
 //SBC A,(HL) (Z1HC)
-fn sub_9e(cpu: &mut Cpu) -> u8 {
+fn sbc_9e(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::HL);
     cpu.sub_a_u8(value , true);
     2
 }
 //SBC A, A (ZIHC)
-fn sub_9f(cpu: &mut Cpu) -> u8 {
+fn sbc_9f(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::A);
     cpu.sub_a_u8(value, true);
     1
@@ -941,54 +941,274 @@ fn cpu_fe(cpu: &mut Cpu) -> u8 {
 }
 
 //ADC A, B (Z0HC)
-fn add_88(cpu: &mut Cpu) -> u8 {
+fn adc_88(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::B);
     cpu.add_a_u8(value , true);
     1
 }
 //ADC A, C (Z0HC)
-fn add_89(cpu: &mut Cpu) -> u8 {
+fn adc_89(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::C);
     cpu.add_a_u8(value , true);
     1
 }
 //ADC A, D (Z0HC)
-fn add_8a(cpu: &mut Cpu) -> u8 {
+fn adc_8a(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::D);
     cpu.add_a_u8(value, true);
     1
 }
 //ADC A, E (Z0HC)
-fn add_8b(cpu: &mut Cpu) -> u8 {
+fn adc_8b(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::E);
     cpu.add_a_u8(value, true);
     1
 }
 //ADC A, H (Z0HC)
-fn add_8c(cpu: &mut Cpu) -> u8 {
+fn adc_8c(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::H);
     cpu.add_a_u8(value, true);
     1
 }
 //ADC A, L (Z0HC)
-fn add_8d(cpu: &mut Cpu) -> u8 {
+fn adc_8d(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::L);
     cpu.add_a_u8(value, true);
     1
 }
 //ADC A, (HL) (Z0HC)
-fn add_8e(cpu: &mut Cpu) -> u8 {
+fn adc_8e(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::HL);
     cpu.add_a_u8(value, true);
     2
 }
 //ADC A, A (Z0HC)
-fn add_8f(cpu: &mut Cpu) -> u8 {
+fn adc_8f(cpu: &mut Cpu) -> u8 {
     let value = cpu.get_r8(Registers::A);
     cpu.add_a_u8(value, true);
     1
 }
 
+//AND A, B (Z010)
+fn and_a0(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::B);
+    cpu.and_a_u8(value);
+    1
+}
+//AND A, C (Z010)
+fn and_a1(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::C);
+    cpu.and_a_u8(value);
+    1
+}
+//AND A, D (Z010)
+fn and_a2(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::D);
+    cpu.and_a_u8(value);
+    1
+}
+//AND A, E (Z010)
+fn and_a3(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::E);
+    cpu.and_a_u8(value);
+    1
+}
+//AND A, H (Z010)
+fn and_a4(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::H);
+    cpu.and_a_u8(value);
+    1
+}
+//AND A, L (Z010)
+fn and_a5(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::L);
+    cpu.and_a_u8(value);
+    1
+}
+//AND A, (HL) (Z010)
+fn and_a6(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::HL);
+    cpu.and_a_u8(value);
+    2
+}
+//AND A, A (Z010)
+fn and_a7(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    cpu.and_a_u8(value);
+    1
+}
+
+//XOR A, B (Z000)
+fn xor_a8(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::B);
+    cpu.xor_a_u8(value);
+    1
+}
+//XOR A, C (Z000)
+fn xor_a9(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::C);
+    cpu.xor_a_u8(value);
+    1
+}
+//XOR A, D (Z000)
+fn xor_aa(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::D);
+    cpu.xor_a_u8(value);
+    1
+}
+//XOR A, E (Z000)
+fn xor_ab(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::E);
+    cpu.xor_a_u8(value);
+    1
+}
+//XOR A, H (Z000)
+fn xor_ac(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::H);
+    cpu.xor_a_u8(value);
+    1
+}
+//XOR A, L (Z000)
+fn xor_ad(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::L);
+    cpu.xor_a_u8(value);
+    1
+}
+//XOR A, (HL) (Z000)
+fn xor_ae(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::HL);
+    cpu.xor_a_u8(value);
+    2
+}
+//XOR A, A (Z000)
+fn xor_af(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    cpu.xor_a_u8(value);
+    1
+}
+
+//OR A, B (Z000)
+fn or_b0(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::B);
+    cpu.or_a_u8(value);
+    1
+}
+//OR A, C (Z000)
+fn or_b1(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::C);
+    cpu.or_a_u8(value);
+    1
+}
+//OR A, D (Z000)
+fn or_b2(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::D);
+    cpu.or_a_u8(value);
+    1
+}
+//OR A, E (Z000)
+fn or_b3(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::E);
+    cpu.or_a_u8(value);
+    1
+}
+//OR A, H (Z000)
+fn or_b4(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::H);
+    cpu.or_a_u8(value);
+    1
+}
+//OR A, L (Z000)
+fn or_b5(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::L);
+    cpu.or_a_u8(value);
+    1
+}
+//OR A, (HL) (Z000)
+fn or_b6(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::HL);
+    cpu.or_a_u8(value);
+    2
+}
+//OR A, A (Z000)
+fn or_b7(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    cpu.or_a_u8(value);
+    1
+}
+
+//CP A, B (ZIHC)
+fn cp_b8(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::B);
+    cpu.cp_a_u8(value);
+    1
+}
+//CP A, C (ZIHC)
+fn cp_b9(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::C);
+    cpu.cp_a_u8(value);
+    1
+}
+//CP A, D (ZIHC)
+fn cp_ba(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::D);
+    cpu.cp_a_u8(value);
+    1
+}
+//CP A, E (ZIHC)
+fn cp_bb(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::E);
+    cpu.cp_a_u8(value);
+    1
+}
+//CP A, H (ZIHC)
+fn cp_bc(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::H);
+    cpu.cp_a_u8(value);
+    1
+}
+//CP A, L (ZIHC)
+fn cp_bd(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::L);
+    cpu.cp_a_u8(value);
+    1
+}
+//CP A, (HL) (ZIHC)
+fn cp_be(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::HL);
+    cpu.cp_a_u8(value);
+    2
+}
+//CP A, A (ZIHC)
+fn cp_bf(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r8(Registers::A);
+    cpu.cp_a_u8(value);
+    1
+}
+
+//ADD A, u8 (Z0HC)
+fn add_c6(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.add_a_u8(value , false);
+    2
+}
+//SUB A, u8 (Z1HC)
+fn sub_d6(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.sub_a_u8(value , false);
+    2
+}
+//AND A, u8 (Z010)
+fn and_e6(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.and_a_u8(value);
+    2
+}
+//OR A, u8 (Z000)
+fn or_f6(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.or_a_u8(value);
+    2
+}
 
 //ADD SP, i8 (00HC)
 fn add_e8(cpu: &mut Cpu) -> u8 {
@@ -1004,6 +1224,73 @@ fn add_e8(cpu: &mut Cpu) -> u8 {
     cpu.set_flag(Flags::HC, set_h);
     cpu.set_flag(Flags::C, set_c);
     2
+}
+
+//ADC A, u8 (Z0HC)
+fn adc_ce(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.add_a_u8(value, true);
+    2
+}
+//SBC A, u8 (Z1HC)
+fn sbc_de(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.sub_a_u8(value, true);
+    2
+}
+//XOR A, u8 (Z000)
+fn xor_ee(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.xor_a_u8(value);
+    2
+}
+//CP A, u8 (Z1HC)
+fn cp_fe(cpu: &mut Cpu) -> u8 {
+    let value = cpu.fetch();
+    cpu.cp_a_u8(value);
+    2
+}
+
+fn pop_c1(cpu: &mut Cpu) -> u8 {
+    let value = cpu.pop();
+    cpu.set_r16(Registers16::BC, value);
+    3 // Needs checking
+}
+fn pop_d1(cpu: &mut Cpu) -> u8 {
+    let value = cpu.pop();
+    cpu.set_r16(Registers16::DE, value);
+    3
+}
+fn pop_e1(cpu: &mut Cpu) -> u8 {
+    let value = cpu.pop();
+    cpu.set_r16(Registers16::HL, value);
+    3
+}
+fn pop_f1(cpu: &mut Cpu) -> u8 {
+    let value = cpu.pop();
+    cpu.set_r16(Registers16::AF, value);
+    3
+}
+
+fn push_c5(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r16(Registers16::BC);
+    cpu.push(value);
+    4
+}
+fn push_d5(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r16(Registers16::DE);
+    cpu.push(value);
+    4
+}
+fn push_e5(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r16(Registers16::HL);
+    cpu.push(value);
+    4
+}
+fn push_f5(cpu: &mut Cpu) -> u8 {
+    let value = cpu.get_r16(Registers16::AF);
+    cpu.push(value);
+    4
 }
 
 pub fn execute(cpu: &mut Cpu) -> u8 {
