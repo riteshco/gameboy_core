@@ -1,6 +1,7 @@
 pub mod opcodes;
 
 use crate::utils::*;
+use crate::bus::Bus;
 
 pub struct Cpu {
     pc: u16,
@@ -15,24 +16,48 @@ pub struct Cpu {
     l: u8,
     irq_enabled: bool,
     halted: bool,
+    bus: Bus,
 }
 
 impl Cpu {
     pub fn new() -> Self {
-        Cpu {
-            pc: 0x0000,
-            sp: 0x0000,
-            a: 0x00,
+        let mut cpu = Self {
+            pc: 0x0100,
+            sp: 0xFFFE,
+            a: 0x01,
             b: 0x00,
-            c: 0x00,
+            c: 0x13,
             d: 0x00,
-            e: 0x00,
-            f: 0x00,
-            h: 0x00,
-            l: 0x00,
+            e: 0xD8,
+            f: 0xB0,
+            h: 0x01,
+            l: 0x4D,
             irq_enabled: false,
             halted: false,
-        }
+            bus: Bus::new(),
+        };
+
+        cpu.write_ram(0xFF10, 0x80);
+        cpu.write_ram(0xFF11, 0xBF);
+        cpu.write_ram(0xFF12, 0xF3);
+        cpu.write_ram(0xFF14, 0xBF);
+        cpu.write_ram(0xFF16, 0x3F);
+        cpu.write_ram(0xFF19, 0xBF);
+        cpu.write_ram(0xFF1A, 0x7F);
+        cpu.write_ram(0xFF1B, 0xFF);
+        cpu.write_ram(0xFF1C, 0x9F);
+        cpu.write_ram(0xFF1E, 0xBF);
+        cpu.write_ram(0xFF20, 0xFF);
+        cpu.write_ram(0xFF23, 0xBF);
+        cpu.write_ram(0xFF24, 0x77);
+        cpu.write_ram(0xFF25, 0xF3);
+        cpu.write_ram(0xFF26, 0xF1); // 0xF0 for SGB
+        cpu.write_ram(0xFF40, 0x91);
+        cpu.write_ram(0xFF47, 0xFC);
+        cpu.write_ram(0xFF48, 0xFF);
+        cpu.write_ram(0xFF49, 0xFF);
+
+        cpu
     }
 
     pub fn get_r8(&self, r: Registers) -> u8 {
@@ -144,11 +169,11 @@ impl Cpu {
     }
 
     pub fn read_ram(&self, address: u16) -> u8 {
-        todo!();
+        self.bus.read_ram(address)
     }
 
     pub fn write_ram(&mut self, address: u16, value: u8) {
-        todo!();
+        self.bus.write_ram(address, value);
     }
 
     pub fn inc_r16(&mut self, r: Registers16) {
@@ -391,6 +416,11 @@ impl Cpu {
 
     pub fn set_halted(&mut self, halted: bool){
         self.halted = halted;
+    }
+
+    pub fn tick(&mut self) -> bool {
+        let cycles = if self.halted {1} else { opcodes::execute(self) };
+        false
     }
 }
 

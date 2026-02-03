@@ -21,9 +21,6 @@ const OPCODES: [fn(&mut Cpu) -> u8; 256] = [
          ld_f0, pop_f1,  ld_f2,   di_f3, invalid, push_f5,   or_f6,  rst_f7,  ld_f8,   ld_f9,  ld_fa,     ei_fb, invalid, invalid,  cp_fe,  rst_ff, //0x0F
 ];
 
-fn todo(cpu: &mut Cpu) -> u8 {
-    todo!();
-}
 
 fn nop(_cpu: &mut Cpu) -> u8 {
     1
