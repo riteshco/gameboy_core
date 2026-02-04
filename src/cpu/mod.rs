@@ -422,6 +422,10 @@ impl Cpu {
         let cycles = if self.halted {1} else { opcodes::execute(self) };
         false
     }
+
+    pub fn load_rom(&mut self, rom: &[u8]) {
+        unimplemented!();
+    }
 }
 
 #[derive(Copy, Clone)]
