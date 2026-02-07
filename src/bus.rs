@@ -1,14 +1,18 @@
 use crate::cart::{Cart, ROM_START , ROM_STOP};
+use crate::ppu::{Ppu, VRAM_START , VRAM_END , PpuUpdateResult};
+
 pub struct Bus {
     rom: Cart,
-    ram: [u8; 0x10000],
+    ppu: Ppu,
+    ram: [u8; 0x6000],
 }
 
 impl Bus {
     pub fn new() -> Self{
         Self {
             rom: Cart::new(),
-            ram: [0; 0x10000],
+            ppu: Ppu::new(),
+            ram: [0; 0x6000],
         }
     }
 
@@ -17,6 +21,9 @@ impl Bus {
             ROM_START..=ROM_STOP => {
                 self.rom.read_cart(addr)
             },
+            VRAM_START..=VRAM_END => {
+                self.ppu.read_vram(addr)
+            }
             _ => {
                 let offset = addr - ROM_STOP - 1;
                 self.ram[offset as usize]
@@ -29,6 +36,9 @@ impl Bus {
             ROM_START..=ROM_STOP => {
                 self.rom.write_cart(addr, value);
             },
+            VRAM_START..=VRAM_END => {
+                self.ppu.write_vram(addr, value);
+            }
             _ => {
                 let offset = addr - ROM_STOP - 1;
                 self.ram[offset as usize] = value;
@@ -38,5 +48,9 @@ impl Bus {
 
     pub fn load_rom(&mut self, data: &[u8]) {
         self.rom.load_cart(data);
+    }
+
+    pub fn update_ppu(&mut self, cycles: u8) -> PpuUpdateResult {
+        self.ppu.update(cycles)
     }
 }

@@ -2,6 +2,7 @@ pub mod opcodes;
 
 use crate::utils::*;
 use crate::bus::Bus;
+use crate::ppu::modes::LcdResults;
 
 pub struct Cpu {
     pc: u16,
@@ -18,6 +19,14 @@ pub struct Cpu {
     halted: bool,
     bus: Bus,
 }
+
+const IRQ_PRIORITIES: [Interrupts; 5] = [
+    Interrupts::Vblank,
+    Interrupts::Stat,
+    Interrupts::Timer,
+    Interrupts::Serial,
+    Interrupts::Joypad,
+];
 
 impl Cpu {
     pub fn new() -> Self {
@@ -419,8 +428,62 @@ impl Cpu {
     }
 
     pub fn tick(&mut self) -> bool {
+        let mut draw_time = false;
         let cycles = if self.halted {1} else { opcodes::execute(self) };
-        false
+        let ppu_result = self.bus.update_ppu(cycles);
+        match ppu_result.lcd_result {
+            LcdResults::RenderFrame => {
+                self.enable_irq_type(Interrupts::Vblank, true);
+                draw_time = true;
+            },
+            _ => {},
+        }
+        if let Some(irq) = self.check_irq() {
+            self.trigger_irq(irq);
+        }
+        draw_time
+    }
+
+    fn check_irq(&mut self) -> Option<Interrupts> {
+        if !self.irq_enabled && !self.halted {
+            return None;
+        }
+
+        let if_reg = self.read_ram(IF);
+        let ie_reg = self.read_ram(IE);
+        let irq_flags = if_reg & ie_reg;
+        for (i, irq) in IRQ_PRIORITIES.iter().enumerate() {
+            if irq_flags.get_bit(i as u8) {
+                return Some(*irq);
+            }
+        }
+        None
+    }
+
+    fn enable_irq_type(&mut self, irq: Interrupts, enabled: bool) {
+        let mut if_reg = self.read_ram(IF);
+        match irq {
+            Interrupts::Vblank => { if_reg.set_bit(0, enabled) },
+            Interrupts::Stat =>   { if_reg.set_bit(1, enabled) },
+            Interrupts::Timer =>  { if_reg.set_bit(2, enabled) },
+            Interrupts::Serial => { if_reg.set_bit(3, enabled) },
+            Interrupts::Joypad => { if_reg.set_bit(4, enabled) },
+        }
+        self.write_ram(IF, if_reg);
+    }
+
+    fn trigger_irq(&mut self, irq: Interrupts) {
+        self.halted = false;
+
+        if self.irq_enabled {
+            self.irq_enabled = false;
+
+            let vector = irq.get_vector();
+            self.push(self.pc);
+            self.set_pc(vector);
+
+            self.enable_irq_type(irq, false);
+        }
     }
 
     pub fn load_rom(&mut self, rom: &[u8]) {
@@ -455,4 +518,28 @@ pub enum Flags {
     S,
     C,
     HC,
+}
+
+const IF: u16 = 0xFF0F;
+const IE: u16 = 0xFFFF;
+
+#[derive(Copy, Clone)]
+pub enum Interrupts {
+    Vblank,
+    Stat,
+    Timer,
+    Serial,
+    Joypad,
+}
+
+impl Interrupts {
+    pub fn get_vector(&self) -> u16 {
+        match *self {
+            Interrupts::Vblank => 0x0040,
+            Interrupts::Stat => 0x0048,
+            Interrupts::Timer => 0x0050,
+            Interrupts::Serial => 0x0058,
+            Interrupts::Joypad => 0x0060,
+        }
+    }
 }
