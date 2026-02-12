@@ -1663,8 +1663,7 @@ fn daa_27(cpu: &mut Cpu) -> u8 {
 
 pub fn execute(cpu: &mut Cpu) -> u8 {
     let op_idx = cpu.fetch();
-    OPCODES[op_idx as usize](cpu);
-    return 0;
+    OPCODES[op_idx as usize](cpu)
 }
 
 //------------------------2nd table ----------------------------
