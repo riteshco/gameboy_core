@@ -1,5 +1,6 @@
 use crate::cart::{Cart, ROM_START , ROM_STOP};
-use crate::ppu::{Ppu, VRAM_START , VRAM_END , PpuUpdateResult};
+use crate::ppu::{Ppu, VRAM_START , VRAM_END , PpuUpdateResult, LCD_REG_START, LCD_REG_END};
+use crate::utils::DISPLAY_BUFFER;
 
 pub struct Bus {
     rom: Cart,
@@ -24,8 +25,11 @@ impl Bus {
             VRAM_START..=VRAM_END => {
                 self.ppu.read_vram(addr)
             }
+            LCD_REG_START..=LCD_REG_END => {
+                self.ppu.read_lcd_reg(addr)
+            }
             _ => {
-                let offset = addr - ROM_STOP - 1;
+                let offset = addr - VRAM_END - 1;
                 self.ram[offset as usize]
             }
         }
@@ -39,8 +43,11 @@ impl Bus {
             VRAM_START..=VRAM_END => {
                 self.ppu.write_vram(addr, value);
             }
+            LCD_REG_START..=LCD_REG_END => {
+                self.ppu.write_lcd_reg(addr, value);
+            }
             _ => {
-                let offset = addr - ROM_STOP - 1;
+                let offset = addr - VRAM_END - 1;
                 self.ram[offset as usize] = value;
         }
         }
@@ -52,5 +59,9 @@ impl Bus {
 
     pub fn update_ppu(&mut self, cycles: u8) -> PpuUpdateResult {
         self.ppu.update(cycles)
+    }
+
+    pub fn render(&self) -> [u8; DISPLAY_BUFFER] {
+        self.ppu.render()
     }
 }

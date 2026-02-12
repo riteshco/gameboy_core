@@ -431,6 +431,9 @@ impl Cpu {
         let mut draw_time = false;
         let cycles = if self.halted {1} else { opcodes::execute(self) };
         let ppu_result = self.bus.update_ppu(cycles);
+        if ppu_result.irq {
+            self.enable_irq_type(Interrupts::Stat, true);
+        }
         match ppu_result.lcd_result {
             LcdResults::RenderFrame => {
                 self.enable_irq_type(Interrupts::Vblank, true);
@@ -488,6 +491,10 @@ impl Cpu {
 
     pub fn load_rom(&mut self, rom: &[u8]) {
         unimplemented!();
+    }
+
+    pub fn render(&self) -> [u8; DISPLAY_BUFFER] {
+        self.bus.render()
     }
 }
 

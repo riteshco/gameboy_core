@@ -3,6 +3,7 @@ pub mod modes;
 
 use tile::Tile;
 use modes::{Lcd, LcdResults, LcdModeType};
+use crate::utils::*;
 
 pub const VRAM_START: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
@@ -17,13 +18,22 @@ const TILE_MAP_SIZE: usize = (TILE_MAP_END - TILE_MAP_START + 1) as usize;
 
 pub struct PpuUpdateResult {
     pub lcd_result: LcdResults,
+    pub irq: bool,
 }
 
 pub struct Ppu {
     mode: Lcd,
     tiles: [Tile; NUM_TILES],
     maps: [u8; TILE_MAP_SIZE],
+    lcd_regs: [u8; LCD_REG_SIZE],
 }
+
+const LY: u16 = 0xFF44;
+const STAT: u16 = 0xFF41;
+
+const STAT_OAM_IRQ_BIT: u8          = 5;
+const STAT_VBLANK_IRQ_BIT: u8       = 4;
+const STAT_HBLANK_IRQ_BIT: u8       = 3;
 
 impl Ppu {
     pub fn new() -> Self {
@@ -31,12 +41,40 @@ impl Ppu {
             mode: Lcd::new(),
             tiles: [Tile::new(); NUM_TILES],
             maps: [0; TILE_MAP_SIZE],
+            lcd_regs: [0; LCD_REG_SIZE],
         }
     }
 
     pub fn update(&mut self, cycles: u8) -> PpuUpdateResult {
+        let old_mode = self.mode.get_mode();
         let lcd_result = self.mode.step(cycles);
-        PpuUpdateResult { lcd_result }
+        let mut stat = self.read_lcd_reg(STAT);
+        let mut irq = false;
+
+        let scanline = self.mode.get_line();
+        self.write_lcd_reg(LY, scanline);
+
+        let mode = self.mode.get_mode();
+        if old_mode != mode {
+            match mode {
+                LcdModeType::HBLANK => {
+                    irq |= stat.get_bit(STAT_HBLANK_IRQ_BIT);
+                },
+                LcdModeType::VBLANK => {
+                    irq |= stat.get_bit(STAT_VBLANK_IRQ_BIT);
+                },
+                LcdModeType::OAMReadMode => {
+                    irq |= stat.get_bit(STAT_OAM_IRQ_BIT);
+                },
+                _ => {},
+            }
+        }
+
+        stat &= 0b1111_1100;
+        stat |= mode.get_idx();
+        self.write_lcd_reg(STAT, stat);
+
+        PpuUpdateResult { lcd_result, irq }
     }
 
     pub fn read_vram(&self, addr: u16) -> u8 {
@@ -72,3 +110,157 @@ impl Ppu {
     }
 }
 
+pub const LCD_REG_START: u16 = 0xFF40;
+pub const LCD_REG_END: u16 = 0xFF4B;
+const LCD_REG_SIZE: usize = (LCD_REG_END - LCD_REG_START + 1) as usize;
+
+impl Ppu {
+    pub fn read_lcd_reg(&self, addr: u16) -> u8 {
+        let relative_addr = addr - LCD_REG_START;
+        self.lcd_regs[relative_addr as usize]
+    }
+
+    pub fn write_lcd_reg(&mut self, addr: u16, value: u8) {
+        let relative_addr = addr - LCD_REG_START;
+        self.lcd_regs[relative_addr as usize] = value;
+    }
+
+    fn is_lcd_enabled(&self) -> bool {
+        let lcdc = self.read_lcd_reg(LCDC);
+        lcdc.get_bit(LCDC_LCD_ENABLED_BIT)
+    }
+
+    fn get_wndw_tile_map_idx(&self) -> u8 {
+        let lcdc = self.read_lcd_reg(LCDC);
+        if lcdc.get_bit(LCDC_WNDW_MAP_BIT) { 1 } else { 0 }
+    }
+
+    fn get_bg_window_tile_set_idx(&self) -> u8 {
+        let lcdc = self.read_lcd_reg(LCDC);
+        if lcdc.get_bit(LCDC_BG_WNDW_TILE_BIT) { 1 } else { 0 }
+    }
+
+    fn get_bg_tile_map_idx(&self) -> u8 {
+        let lcdc = self.read_lcd_reg(LCDC);
+        if lcdc.get_bit(LCDC_BG_MAP_BIT) { 1 } else { 0 }
+    }
+
+    fn are_sprites_8x16(&self) -> bool {
+        let lcdc = self.read_lcd_reg(LCDC);
+        lcdc.get_bit(LCDC_SPR_SIZE_BIT)
+    }
+
+    fn is_sprite_layer_displayed(&self) -> bool {
+        let lcdc = self.read_lcd_reg(LCDC);
+        lcdc.get_bit(LCDC_SPR_ENABLED_BIT)
+    }
+
+    fn is_bg_layer_displayed(&self) -> bool {
+        let lcdc = self.read_lcd_reg(LCDC);
+        lcdc.get_bit(LCDC_BG_WNDW_ENABLED_BIT)
+    }
+
+    fn is_window_layer_displayed(&self) -> bool {
+        let lcdc = self.read_lcd_reg(LCDC);
+        lcdc.get_bit(LCDC_BG_WNDW_ENABLED_BIT) && lcdc.get_bit(LCDC_WNDW_ENABLED_BIT)
+    }
+}
+
+const LCDC: u16 = 0xFF40;
+const LCDC_LCD_ENABLED_BIT: u8      = 7;
+const LCDC_WNDW_MAP_BIT: u8         = 6;
+const LCDC_WNDW_ENABLED_BIT: u8     = 5;
+const LCDC_BG_WNDW_TILE_BIT: u8     = 4;
+const LCDC_BG_MAP_BIT: u8           = 3;
+const LCDC_SPR_SIZE_BIT: u8         = 2;
+const LCDC_SPR_ENABLED_BIT: u8      = 1;
+const LCDC_BG_WNDW_ENABLED_BIT: u8  = 0;
+
+
+const SCY: u16 = 0xFF42;
+const SCX: u16 = 0xFF43;
+
+const WY: u16 = 0xFF4A;
+const WX: u16 = 0xFF4B;
+
+impl Ppu {
+    fn get_viewport_coord(&self) -> Point {
+        let x = self.read_lcd_reg(SCX);
+        let y = self.read_lcd_reg(SCY);
+        Point::new(x, y)
+    }
+
+    fn get_window_coord(&self) -> Point {
+        let x = self.read_lcd_reg(WX);
+        let y = self.read_lcd_reg(WY);
+        Point::new(x.saturating_sub(7), y)
+    }
+}
+
+const BGP: u16 = 0xFF47;
+
+impl Ppu {
+    fn get_bg_palette(&self) -> [u8; 4] {
+        unpack_u8(self.read_lcd_reg(BGP))
+    }
+}
+
+const OBP0: u16 = 0xFF48;
+const OBP1: u16 = 0xFF49;
+
+const NUM_TILE_COLS: usize = SCREEN_WIDTH / 8;
+const NUM_TILE_ROWS: usize = SCREEN_HEIGHT / 8;
+const LAYER_WIDTH: usize = 32;
+const TILE_MAP_TABLE_SIZE: usize = TILE_MAP_SIZE / 2;
+
+impl Ppu {
+    fn get_sprite_palette(&self, index: u8) -> [u8; 4] {
+        match index {
+            0 => unpack_u8(self.read_lcd_reg(OBP0)) ,
+            1 => unpack_u8(self.read_lcd_reg(OBP1)) ,
+            _ => { unreachable!(); },
+        }
+    }
+
+    pub fn render(&self) -> [u8; DISPLAY_BUFFER] {
+        let mut result = [0xFF; DISPLAY_BUFFER];
+
+        if self.is_bg_layer_displayed() {
+            self.render_bg(&mut result);
+        }
+        result
+    }
+
+    pub fn render_bg(&self, buffer: &mut [u8]) {
+        let map_offset = self.get_bg_tile_map_idx() as usize * TILE_MAP_TABLE_SIZE;
+        let palette = self.get_bg_palette();
+        for ty in 0..NUM_TILE_ROWS {
+            for tx in 0..NUM_TILE_COLS {
+                let map_num = ty * LAYER_WIDTH + tx;
+                let tile_index = self.maps[map_offset + map_num] as usize;
+                let adjusted_tile_index = if self.get_bg_window_tile_set_idx() == 1 {
+                    tile_index as usize
+                } else {
+                    (256 + tile_index as i8 as isize) as usize
+                };
+                let tile = self.tiles[adjusted_tile_index];
+
+                for y in 0..8 {
+                    let row = tile.get_row(y);
+                    let pixel_y = 8 * ty + (y as usize);
+                    for x in 0..8 {
+                        let pixel_x = 8 * tx + x;
+                        let cell = row[x];
+                        let color_idx = palette[cell as usize];
+                        let color = GB_PALETTE[color_idx as usize];
+                        let buffer_idx = 4 * (pixel_y * SCREEN_WIDTH + pixel_x);
+                        for i in 0..4 {
+                            buffer[buffer_idx + i] = color[i];
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+}

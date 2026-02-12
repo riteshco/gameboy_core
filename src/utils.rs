@@ -78,3 +78,41 @@ macro_rules! impl_bitops {
 
 impl_bitops!(u8);
 impl_bitops!(u16);
+
+#[derive(Clone, Copy)]
+pub struct Point {
+    pub x: u8,
+    pub y: u8,
+}
+
+impl Point {
+    pub fn new(x: u8, y: u8) -> Self {
+        Self { x, y }
+    }
+}
+
+pub fn unpack_u8(value: u8) -> [u8; 4] {
+    let mut output = [0; 4];
+    output[0] = value & 0b0000_0011;
+    output[1] = (value & 0b0000_1100) >> 2;
+    output[2] = (value & 0b0011_0000) >> 4;
+    output[3] = (value & 0b1100_0000) >> 6;
+    output
+}
+
+pub fn pack_u8(a: &[u8]) -> u8 {
+    let mut output = a[0];
+    output |= a[1] << 2;
+    output |= a[2] << 4;
+    output |= a[3] << 6;
+    output
+}
+
+pub const DISPLAY_BUFFER: usize = SCREEN_WIDTH * SCREEN_HEIGHT * 4;
+
+pub const GB_PALETTE: [[u8; 4]; 4] = [
+    [255, 255, 255, 255],
+    [128, 128, 128, 255],
+    [64,   64,  64, 255],
+    [ 0,    0,   0, 255],
+];
