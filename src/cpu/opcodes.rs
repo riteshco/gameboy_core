@@ -1349,7 +1349,7 @@ fn jr_30(cpu: &mut Cpu) -> u8 {
 fn jp_c3(cpu: &mut Cpu) -> u8 {
     let addr = cpu.fetch_u16();
     cpu.set_pc(addr);
-    2
+    4
 }
 
 //JP NZ, u16 (----)
