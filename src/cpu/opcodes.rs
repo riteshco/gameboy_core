@@ -1461,8 +1461,8 @@ fn ret_c9(cpu: &mut Cpu) -> u8 {
 }
 //RET NZ
 fn ret_c0(cpu: &mut Cpu) -> u8 {
-    let addr = cpu.pop();
     if !cpu.get_flag(Flags::Z) {
+        let addr = cpu.pop();
         cpu.set_pc(addr);
         5
     } else {
@@ -1471,8 +1471,8 @@ fn ret_c0(cpu: &mut Cpu) -> u8 {
 }
 //RET NC
 fn ret_d0(cpu: &mut Cpu) -> u8 {
-    let addr = cpu.pop();
     if !cpu.get_flag(Flags::C) {
+        let addr = cpu.pop();
         cpu.set_pc(addr);
         5
     } else {
@@ -1481,8 +1481,8 @@ fn ret_d0(cpu: &mut Cpu) -> u8 {
 }
 //RET Z
 fn ret_c8(cpu: &mut Cpu) -> u8 {
-    let addr = cpu.pop();
     if cpu.get_flag(Flags::Z) {
+        let addr = cpu.pop();
         cpu.set_pc(addr);
         5
     } else {
@@ -1491,8 +1491,8 @@ fn ret_c8(cpu: &mut Cpu) -> u8 {
 }
 //RET C
 fn ret_d8(cpu: &mut Cpu) -> u8 {
-    let addr = cpu.pop();
     if cpu.get_flag(Flags::C) {
+        let addr = cpu.pop();
         cpu.set_pc(addr);
         5
     } else {
@@ -1661,7 +1661,7 @@ fn daa_27(cpu: &mut Cpu) -> u8 {
     1
 }
 
-pub fn execute(cpu: &mut Cpu) -> u8 {
+pub fn  execute(cpu: &mut Cpu) -> u8 {
     let op_idx = cpu.fetch();
     OPCODES[op_idx as usize](cpu)
 }
@@ -1678,9 +1678,9 @@ fn get_cb_reg(op: u8) -> Registers {
         1 => Registers::C,
         2 => Registers::D,
         3 => Registers::E,
-        4 => Registers::HL,
-        5 => Registers::H,
-        6 => Registers::L,
+        4 => Registers::H,
+        5 => Registers::L,
+        6 => Registers::HL,
         7 => Registers::A,
         _ => unreachable!(),
     }

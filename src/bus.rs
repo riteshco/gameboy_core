@@ -1,5 +1,6 @@
 use crate::cart::{Cart, ROM_START , ROM_STOP};
-use crate::ppu::{Ppu, VRAM_START , VRAM_END , PpuUpdateResult, LCD_REG_START, LCD_REG_END};
+use crate::cpu::Registers16;
+use crate::ppu::{Ppu, VRAM_START, VRAM_END, PpuUpdateResult, LCD_REG_START, LCD_REG_END};
 use crate::utils::DISPLAY_BUFFER;
 
 pub struct Bus {
@@ -36,6 +37,13 @@ impl Bus {
     }
 
     pub fn write_ram(&mut self, addr: u16, value: u8) {
+        if addr == 0xFF40 {
+            if (value & 0x80) != 0 {
+                println!("LCD IS ON! LCDC: {:02X}", value);
+            } else {
+                println!("LCD IS OFF! LCDC: {:02X}", value);
+            }
+        }
         match addr {
             ROM_START..=ROM_STOP => {
                 self.rom.write_cart(addr, value);

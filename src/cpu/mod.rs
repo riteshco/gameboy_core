@@ -140,9 +140,9 @@ impl Cpu {
     pub fn get_flag(&self, flag: Flags) -> bool {
         match flag {
             Flags::Z => (self.f & 0b1000_0000) != 0,
-            Flags::S => (self.b & 0b0100_0000) != 0,
-            Flags::HC => (self.c & 0b0010_0000) != 0,
-            Flags::C => (self.d & 0b0001_0000) != 0,
+            Flags::S => (self.f & 0b0100_0000) != 0,
+            Flags::HC => (self.f & 0b0010_0000) != 0,
+            Flags::C => (self.f & 0b0001_0000) != 0,
         }
     }
 
@@ -150,23 +150,23 @@ impl Cpu {
         if value {
             match flag {
                 Flags::Z => self.f |= 0b1000_0000,
-                Flags::S => self.b |= 0b0100_0000,
-                Flags::HC => self.c |= 0b0010_0000,
-                Flags::C => self.d |= 0b0001_0000,
+                Flags::S => self.f |= 0b0100_0000,
+                Flags::HC => self.f |= 0b0010_0000,
+                Flags::C => self.f |= 0b0001_0000,
             }
         } else {
             match flag {
                 Flags::Z => self.f &= 0b0111_0000,
-                Flags::S => self.b &= 0b1011_0000,
-                Flags::HC => self.c &= 0b1101_0000,
-                Flags::C => self.d &= 0b1110_0000,
+                Flags::S => self.f &= 0b1011_0000,
+                Flags::HC => self.f &= 0b1101_0000,
+                Flags::C => self.f &= 0b1110_0000,
             }
         }
     }
 
     pub fn fetch(&mut self) -> u8 {
         let value = self.read_ram(self.pc);
-        self.pc += 1;
+        self.pc = self.pc.wrapping_add(1);
         value
     }
 
@@ -316,16 +316,16 @@ impl Cpu {
     pub fn pop(&mut self) -> u16 {
         assert_ne!(self.sp, 0xFFFE, "Stack mustn't be empty when trying to pop!");
         let low = self.read_ram(self.sp);
-        let high = self.read_ram(self.sp+1);
+        let high = self.read_ram(self.sp.wrapping_add(1));
         let value = merge_bytes(high, low);
-        self.sp += 2;
+        self.sp = self.sp.wrapping_add(2);
         value
     }
 
     pub fn push(&mut self, value: u16) {
-        self.sp -= 2;
+        self.sp = self.sp.wrapping_sub(2);
         self.write_ram(self.sp, value.low_byte());
-        self.write_ram(self.sp, value.high_byte());
+        self.write_ram(self.sp.wrapping_add(1), value.high_byte());
     }
 
     pub fn get_pc(&self) -> u16 {
