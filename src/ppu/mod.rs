@@ -16,6 +16,10 @@ const BYTES_PER_TILE: u16 = 16;
 const NUM_TILES: usize = 384;
 const TILE_MAP_SIZE: usize = (TILE_MAP_END - TILE_MAP_START + 1) as usize;
 
+const TILE_SIZE: usize = 8;
+const LAYER_SIZE: usize = 32;
+const MAP_PIXELS: usize = TILE_SIZE * LAYER_SIZE;
+
 pub struct PpuUpdateResult {
     pub lcd_result: LcdResults,
     pub irq: bool,
@@ -234,9 +238,16 @@ impl Ppu {
     pub fn render_bg(&self, buffer: &mut [u8]) {
         let map_offset = self.get_bg_tile_map_idx() as usize * TILE_MAP_TABLE_SIZE;
         let palette = self.get_bg_palette();
-        for ty in 0..NUM_TILE_ROWS {
-            for tx in 0..NUM_TILE_COLS {
-                let map_num = ty * LAYER_WIDTH + tx;
+        let viewport = self.get_viewport_coord();
+        for py in 0..SCREEN_HEIGHT {
+            let current_y = viewport.y as usize + py as usize;
+            let y = current_y % MAP_PIXELS;
+            let row = current_y % TILE_SIZE;
+            for px in 0..SCREEN_WIDTH {
+                let current_x = viewport.x as usize + px as usize;
+                let x = current_x % MAP_PIXELS;
+                let col = current_x % TILE_SIZE;
+                let map_num = (y / TILE_SIZE) * LAYER_SIZE + (x / TILE_SIZE);
                 let tile_index = self.maps[map_offset + map_num] as usize;
                 let adjusted_tile_index = if self.get_bg_window_tile_set_idx() == 1 {
                     tile_index as usize
@@ -244,22 +255,14 @@ impl Ppu {
                     (256 + tile_index as i8 as isize) as usize
                 };
                 let tile = self.tiles[adjusted_tile_index];
-
-                for y in 0..8 {
-                    let row = tile.get_row(y);
-                    let pixel_y = 8 * ty + (y as usize);
-                    for x in 0..8 {
-                        let pixel_x = 8 * tx + x;
-                        let cell = row[x];
-                        let color_idx = palette[cell as usize];
-                        let color = GB_PALETTE[color_idx as usize];
-                        let buffer_idx = 4 * (pixel_y * SCREEN_WIDTH + pixel_x);
-                        for i in 0..4 {
-                            buffer[buffer_idx + i] = color[i];
-                        }
-                    }
+                let data = tile.get_row(row as u8);
+                let cell = data[col];
+                let color_index = palette[cell as usize];
+                let color = GB_PALETTE[color_index as usize];
+                let buffer_index = 4 * (py * SCREEN_WIDTH + px);
+                for i in 0..4 {
+                    buffer[buffer_index + i] = color[i];
                 }
-
             }
         }
     }
