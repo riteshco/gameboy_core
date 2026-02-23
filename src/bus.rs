@@ -2,10 +2,12 @@ use crate::cart::{Cart, ROM_START , ROM_STOP};
 use crate::cpu::Registers16;
 use crate::ppu::{Ppu, VRAM_START, VRAM_END, PpuUpdateResult, LCD_REG_START, LCD_REG_END};
 use crate::utils::DISPLAY_BUFFER;
+use crate::io::{IO, Button , IO_START, IO_STOP};
 
 pub struct Bus {
     rom: Cart,
     ppu: Ppu,
+    io: IO,
     ram: [u8; 0x6000],
 }
 
@@ -14,6 +16,7 @@ impl Bus {
         Self {
             rom: Cart::new(),
             ppu: Ppu::new(),
+            io: IO::new(),
             ram: [0; 0x6000],
         }
     }
@@ -25,16 +28,24 @@ impl Bus {
             },
             VRAM_START..=VRAM_END => {
                 self.ppu.read_vram(addr)
-            }
+            },
+            IO_START..=IO_STOP => {
+                self.io.read_u8(addr)
+            },
             LCD_REG_START..=LCD_REG_END => {
                 self.ppu.read_lcd_reg(addr)
-            }
+            },
             _ => {
                 let offset = addr - VRAM_END - 1;
                 self.ram[offset as usize]
             }
         }
     }
+
+    pub fn press_button(&mut self, button: Button, pressed: bool) {
+        self.io.set_buttons(button, pressed);
+    }
+
 
     pub fn write_ram(&mut self, addr: u16, value: u8) {
         if addr == 0xFF40 {
@@ -50,6 +61,9 @@ impl Bus {
             },
             VRAM_START..=VRAM_END => {
                 self.ppu.write_vram(addr, value);
+            },
+            IO_START..=IO_STOP => {
+                self.io.write_u8(addr, value);
             }
             LCD_REG_START..=LCD_REG_END => {
                 self.ppu.write_lcd_reg(addr, value);

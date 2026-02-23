@@ -2,6 +2,7 @@ pub mod opcodes;
 
 use crate::utils::*;
 use crate::bus::Bus;
+use crate::io::Button;
 use crate::ppu::modes::LcdResults;
 
 pub struct Cpu {
@@ -495,6 +496,11 @@ impl Cpu {
 
     pub fn render(&self) -> [u8; DISPLAY_BUFFER] {
         self.bus.render()
+    }
+
+    pub fn press_button(&mut self, button: Button, pressed: bool) {
+        self.bus.press_button(button, pressed);
+        self.enable_irq_type(Interrupts::Joypad, true);
     }
 }
 
