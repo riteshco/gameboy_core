@@ -1,9 +1,11 @@
 pub mod tile;
 pub mod modes;
+pub mod sprite;
 
 use tile::Tile;
 use modes::{Lcd, LcdResults, LcdModeType};
 use crate::utils::*;
+use sprite::Sprite;
 
 pub const VRAM_START: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
@@ -20,6 +22,12 @@ const TILE_SIZE: usize = 8;
 const LAYER_SIZE: usize = 32;
 const MAP_PIXELS: usize = TILE_SIZE * LAYER_SIZE;
 
+pub const OAM_START: u16 = 0xFE00;
+pub const OAM_STOP: u16 = 0xFE9F;
+
+const NUM_OAM_SPRITES: usize = 40;
+const BYTES_PER_SPRITE: u16 = 4;
+
 pub struct PpuUpdateResult {
     pub lcd_result: LcdResults,
     pub irq: bool,
@@ -30,6 +38,7 @@ pub struct Ppu {
     tiles: [Tile; NUM_TILES],
     maps: [u8; TILE_MAP_SIZE],
     lcd_regs: [u8; LCD_REG_SIZE],
+    oam: [Sprite; NUM_OAM_SPRITES]
 }
 
 const LY: u16 = 0xFF44;
@@ -46,6 +55,7 @@ impl Ppu {
             tiles: [Tile::new(); NUM_TILES],
             maps: [0; TILE_MAP_SIZE],
             lcd_regs: [0; LCD_REG_SIZE],
+            oam: [Sprite::new(); NUM_OAM_SPRITES],
         }
     }
 
@@ -111,6 +121,18 @@ impl Ppu {
             },
             _ => unreachable!(),
         }
+    }
+
+    pub fn read_oam(&self, addr: u16) -> u8 {
+        let relative_addr = addr - OAM_START;
+        let oam_index = relative_addr / BYTES_PER_SPRITE;
+        self.oam[oam_index as usize].read_u8(addr)
+    }
+
+    pub fn write_oam(&mut self, addr: u16, value: u8) {
+        let relative_addr = addr - OAM_START;
+        let oam_index = relative_addr / BYTES_PER_SPRITE;
+        self.oam[oam_index as usize].write_u8(addr, value);
     }
 }
 
@@ -237,6 +259,66 @@ impl Ppu {
             self.render_window(&mut result);
         }
         result
+    }
+
+    fn render_sprites(&self, buffer: &mut [u8]) {
+        let sprites = self.sort_sprites();
+        let bg_palette = self.get_bg_palette();
+        let is_8x16 = self.are_sprites_8x16();
+        for spr in sprites {
+            let height = if is_8x16 { 16 } else { 8 };
+            let palette = self.get_sprite_palette(spr.use_palette1() as u8);
+            let coords = spr.get_coords();
+            let behind_bg = spr.get_bg_priority();
+            for y in 0..height {
+                let y_flipped = spr.is_y_flipped();
+                let spr_idx = if is_8x16 {
+                    if (y < 8 && !y_flipped) || (8 < y && y_flipped) {
+                        spr.get_tile_num() & 0xFE
+                    } else {
+                        spr.get_tile_num() | 0x01
+                    }
+                } else {
+                    spr.get_tile_num()
+                };
+                let tile = self.tiles[spr_idx as usize];
+                let screen_y = y + coords.1;
+                if screen_y < 0 || screen_y >= SCREEN_HEIGHT as isize {
+                    continue;
+                }
+                let mut data_y = if y_flipped { height - y - 1 } else { y };
+                data_y %= 8;
+                let row = tile.get_row(data_y as u8);
+                for x in 0..8 {
+                    let data_x = if spr.is_x_flipped() { 7 - x } else { x };
+                    let cell = row[data_x as usize];
+                    if cell == 0 {
+                        continue;
+                    }
+                    let screen_x = x + coords.0;
+                    if screen_x > 0 || screen_x >= SCREEN_WIDTH as isize {
+                        continue;
+                    }
+                    let buffer_idx = 4 * (screen_x as usize);
+                    let current_rgba = &buffer[buffer_idx..(buffer_idx + 4)];
+                    if behind_bg && current_rgba != GB_PALETTE[bg_palette[0] as usize] {
+                        continue;
+                    }
+                    let color_idx = palette[cell as usize];
+                    let color = GB_PALETTE[color_idx as usize];
+                    for i in 0..4 {
+                        buffer[buffer_idx + i] = color[i];
+                    }
+                }
+            }
+        }
+    }
+
+    fn sort_sprites(&self) -> Vec<Sprite> {
+        let mut sprites = self.oam.to_vec();
+        sprites.reverse();
+        sprites.sort_by(|a, b| b.get_coords().0.cmp(&a.get_coords().0));
+        sprites
     }
 
     pub fn render_bg(&self, buffer: &mut [u8]) {
