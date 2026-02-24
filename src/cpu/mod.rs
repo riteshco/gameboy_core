@@ -19,6 +19,8 @@ pub struct Cpu {
     irq_enabled: bool,
     halted: bool,
     bus: Bus,
+    last_read: Option<u16>,
+    last_write: Option<u16>,
 }
 
 const IRQ_PRIORITIES: [Interrupts; 5] = [
@@ -45,6 +47,8 @@ impl Cpu {
             irq_enabled: false,
             halted: false,
             bus: Bus::new(),
+            last_read: None,
+            last_write: None,
         };
 
         cpu.write_ram(0xFF10, 0x80);
@@ -429,19 +433,30 @@ impl Cpu {
     }
 
     pub fn tick(&mut self) -> bool {
+        self.last_read = None;
+        self.last_write = None;
         let mut draw_time = false;
-        let cycles = if self.halted {1} else { opcodes::execute(self) };
+        let cycles = if self.halted { 1 } else { opcodes::execute(self) };
         let ppu_result = self.bus.update_ppu(cycles);
         if ppu_result.irq {
             self.enable_irq_type(Interrupts::Stat, true);
         }
         match ppu_result.lcd_result {
             LcdResults::RenderFrame => {
+                self.bus.render_scanline();
                 self.enable_irq_type(Interrupts::Vblank, true);
                 draw_time = true;
             },
-            _ => {},
+            LcdResults::RenderLine => {
+                self.bus.render_scanline();
+            },
+            _ => {}
         }
+        let timer_irq = self.bus.update_timer(cycles);
+        if timer_irq {
+            self.enable_irq_type(Interrupts::Timer, true);
+        }
+
         if let Some(irq) = self.check_irq() {
             self.trigger_irq(irq);
         }

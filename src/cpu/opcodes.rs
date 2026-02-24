@@ -1312,9 +1312,9 @@ fn jr_28(cpu: &mut Cpu) -> u8 {
 //JR C, i8
 fn jr_38(cpu: &mut Cpu) -> u8 {
     let offset = cpu.fetch() as i8 as u16;
-    let mut pc = cpu.get_pc();
-    pc = pc.wrapping_add(offset);
     if cpu.get_flag(Flags::C) {
+        let mut pc = cpu.get_pc();
+        pc = pc.wrapping_add(offset);
         cpu.set_pc(pc);
         3
     } else {
@@ -1324,9 +1324,9 @@ fn jr_38(cpu: &mut Cpu) -> u8 {
 //JR NZ, i8
 fn jr_20(cpu: &mut Cpu) -> u8 {
     let offset = cpu.fetch() as i8 as u16;
-    let mut pc = cpu.get_pc();
-    pc = pc.wrapping_add(offset);
     if !cpu.get_flag(Flags::Z) {
+        let mut pc = cpu.get_pc();
+        pc = pc.wrapping_add(offset);
         cpu.set_pc(pc);
         3
     } else {
@@ -1336,9 +1336,9 @@ fn jr_20(cpu: &mut Cpu) -> u8 {
 //JR NC, i8
 fn jr_30(cpu: &mut Cpu) -> u8 {
     let offset = cpu.fetch() as i8 as u16;
-    let mut pc = cpu.get_pc();
-    pc = pc.wrapping_add(offset);
     if !cpu.get_flag(Flags::C) {
+        let mut pc = cpu.get_pc();
+        pc = pc.wrapping_add(offset);
         cpu.set_pc(pc);
         3
     } else {

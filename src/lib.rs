@@ -4,3 +4,5 @@ pub mod bus;
 pub mod cart;
 pub mod ppu;
 pub mod io;
+pub mod wram;
+mod timer;

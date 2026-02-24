@@ -3,12 +3,18 @@ use crate::cpu::Registers16;
 use crate::ppu::{Ppu, VRAM_START, VRAM_END, PpuUpdateResult, LCD_REG_START, LCD_REG_END, OAM_START, OAM_STOP};
 use crate::utils::DISPLAY_BUFFER;
 use crate::io::{IO, Button , IO_START, IO_STOP};
+use crate::wram::{WRAM, ECHO_STOP, WRAM_START};
+
+const HRAM_START: u16 = 0xFF80;
+const HRAM_STOP: u16 = 0xFFFF;
+const HRAM_SIZE: usize = (HRAM_STOP - HRAM_START + 1) as usize;
 
 pub struct Bus {
     rom: Cart,
     ppu: Ppu,
     io: IO,
-    ram: [u8; 0x6000],
+    wram: WRAM,
+    hram: [u8; HRAM_SIZE],
 }
 
 const OAM_DMA: u16 = 0xFF46;
@@ -19,7 +25,8 @@ impl Bus {
             rom: Cart::new(),
             ppu: Ppu::new(),
             io: IO::new(),
-            ram: [0; 0x6000],
+            wram: WRAM::new(),
+            hram: [0; HRAM_SIZE],
         }
     }
 
@@ -31,6 +38,9 @@ impl Bus {
             VRAM_START..=VRAM_END => {
                 self.ppu.read_vram(addr)
             },
+            WRAM_START..=ECHO_STOP => {
+                self.wram.read_u8(addr)
+            },
             IO_START..=IO_STOP => {
                 self.io.read_u8(addr)
             },
@@ -40,9 +50,12 @@ impl Bus {
             LCD_REG_START..=LCD_REG_END => {
                 self.ppu.read_lcd_reg(addr)
             },
+            HRAM_START..=HRAM_STOP => {
+                let relative_addr = addr - HRAM_START;
+                self.hram[relative_addr as usize]
+            }
             _ => {
-                let offset = addr - VRAM_END - 1;
-                self.ram[offset as usize]
+                0
             }
         }
     }
@@ -67,6 +80,9 @@ impl Bus {
             VRAM_START..=VRAM_END => {
                 self.ppu.write_vram(addr, value);
             },
+            WRAM_START..=ECHO_STOP => {
+                self.wram.write_u8(addr, value);
+            },
             IO_START..=IO_STOP => {
                 self.io.write_u8(addr, value);
             },
@@ -78,11 +94,12 @@ impl Bus {
                     self.dma_transfer(value);
                 }
                 self.ppu.write_lcd_reg(addr, value);
-            }
-            _ => {
-                let offset = addr - VRAM_END - 1;
-                self.ram[offset as usize] = value;
-        }
+            },
+            HRAM_START..=HRAM_STOP => {
+                let relative_addr = addr - HRAM_START;
+                self.hram[relative_addr as usize] = value;
+            },
+            _ => {}
         }
     }
 
@@ -104,5 +121,13 @@ impl Bus {
             let value = self.read_ram(src + i);
             self.write_ram(OAM_START + i, value);
         }
+    }
+
+    pub fn update_timer(&mut self, cycles: u8) -> bool {
+        self.io.update_timer(cycles)
+    }
+
+    pub fn render_scanline(&mut self) {
+        self.ppu.render_scanline();
     }
 }
