@@ -1212,8 +1212,8 @@ fn add_e8(cpu: &mut Cpu) -> u8 {
     let value = cpu.fetch() as i8 as u16;
     let sp = cpu.get_r16(Registers16::SP);
     let res = sp.wrapping_add(value);
-    let set_c = check_h_carry_u16(sp, value);
-    let set_h = check_h_carry_u16(sp, value);
+    let set_c = sp.low_byte().checked_add(value.low_byte()).is_none();
+    let set_h = check_h_carry_u8(sp.low_byte(), value.low_byte());
 
     cpu.set_r16(Registers16::SP, res);
     cpu.set_flag(Flags::Z, false);
@@ -1551,25 +1551,25 @@ fn rst_f7(cpu: &mut Cpu) -> u8 {
 
 //RLCA (000C)
 fn rlca_07(cpu: &mut Cpu) -> u8 {
-    cpu.rotate_left(Registers::A, true);
+    cpu.rotate_left(Registers::A, false);
     cpu.set_flag(Flags::Z, false);
     1
 }
 //RRCA (000C)
 fn rrca_0f(cpu: &mut Cpu) -> u8 {
-    cpu.rotate_right(Registers::A, true);
+    cpu.rotate_right(Registers::A, false);
     cpu.set_flag(Flags::Z, false);
     1
 }
 //RLA (000C)
 fn rla_17(cpu: &mut Cpu) -> u8 {
-    cpu.rotate_left(Registers::A, false);
+    cpu.rotate_left(Registers::A, true);
     cpu.set_flag(Flags::Z, false);
     1
 }
 //RRA (000C)
 fn rra_1f(cpu: &mut Cpu) -> u8 {
-    cpu.rotate_right(Registers::A, false);
+    cpu.rotate_right(Registers::A, true);
     cpu.set_flag(Flags::Z, false);
     1
 }
@@ -1578,7 +1578,7 @@ fn rra_1f(cpu: &mut Cpu) -> u8 {
 fn scf_37(cpu: &mut Cpu) -> u8 {
     cpu.set_flag(Flags::S, false);
     cpu.set_flag(Flags::HC, false);
-    cpu.set_flag(Flags::C, false);
+    cpu.set_flag(Flags::C, true);
     1
 }
 //CCF (-00C)
@@ -1609,12 +1609,12 @@ fn reti_d9(cpu: &mut Cpu) -> u8 {
 //DI (----)
 fn di_f3(cpu: &mut Cpu) -> u8 {
     cpu.set_irq(false);
-    4
+    1
 }
 //EI (----)
 fn ei_fb(cpu: &mut Cpu) -> u8 {
     cpu.set_irq(true);
-    4
+    1
 }
 
 //STOP (----)
@@ -1701,10 +1701,10 @@ fn execute_cb(cpu: &mut Cpu, op: u8) -> u8 {
 
    let cb_reg = get_cb_reg(op);
    match op {
-       0x00..=0x07 => { cpu.rotate_left(cb_reg, true); },
-       0x08..=0x0F => { cpu.rotate_right(cb_reg, true); },
-       0x10..=0x17 => { cpu.rotate_left(cb_reg, false); },
-       0x18..=0x1F => { cpu.rotate_right(cb_reg, false); },
+       0x00..=0x07 => { cpu.rotate_left(cb_reg, false); },
+       0x08..=0x0F => { cpu.rotate_right(cb_reg, false); },
+       0x10..=0x17 => { cpu.rotate_left(cb_reg, true); },
+       0x18..=0x1F => { cpu.rotate_right(cb_reg, true); },
        0x20..=0x27 => { cpu.shift_left(cb_reg); },
        0x28..=0x2F => { cpu.shift_right(cb_reg, true); },
        0x30..=0x37 => { cpu.swap_bits(cb_reg); },

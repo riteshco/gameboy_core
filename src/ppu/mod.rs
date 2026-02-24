@@ -258,6 +258,11 @@ impl Ppu {
         if self.is_window_layer_displayed() {
             self.render_window(&mut result);
         }
+
+        if self.is_sprite_layer_displayed() {
+            self.render_sprites(&mut result);
+        }
+
         result
     }
 
@@ -296,7 +301,7 @@ impl Ppu {
                         continue;
                     }
                     let screen_x = x + coords.0;
-                    if screen_x > 0 || screen_x >= SCREEN_WIDTH as isize {
+                    if screen_x < 0 || screen_x >= SCREEN_WIDTH as isize {
                         continue;
                     }
                     let buffer_idx = 4 * (screen_x as usize);
