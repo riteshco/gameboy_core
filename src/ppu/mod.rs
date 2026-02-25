@@ -1,9 +1,11 @@
 pub mod tile;
 pub mod modes;
+pub mod sprite;
 
 use tile::Tile;
 use modes::{Lcd, LcdResults, LcdModeType};
 use crate::utils::*;
+use sprite::Sprite;
 
 pub const VRAM_START: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
@@ -16,16 +18,33 @@ const BYTES_PER_TILE: u16 = 16;
 const NUM_TILES: usize = 384;
 const TILE_MAP_SIZE: usize = (TILE_MAP_END - TILE_MAP_START + 1) as usize;
 
+const TILE_SIZE: usize = 8;
+const LAYER_SIZE: usize = 32;
+const MAP_PIXELS: usize = TILE_SIZE * LAYER_SIZE;
+
+pub const OAM_START: u16 = 0xFE00;
+pub const OAM_STOP: u16 = 0xFE9F;
+
+const NUM_OAM_SPRITES: usize = 40;
+const BYTES_PER_SPRITE: u16 = 4;
+
+const STAT_LY_EQ_LYC_BIT: u8 = 2;
+const STAT_LY_LYC_IRQ_BIT: u8 = 6;
+
+const LYC: u16 = 0xFF45;
+
 pub struct PpuUpdateResult {
     pub lcd_result: LcdResults,
     pub irq: bool,
 }
 
 pub struct Ppu {
+    screen_buffer: [u8; DISPLAY_BUFFER],
     mode: Lcd,
     tiles: [Tile; NUM_TILES],
     maps: [u8; TILE_MAP_SIZE],
     lcd_regs: [u8; LCD_REG_SIZE],
+    oam: [Sprite; NUM_OAM_SPRITES]
 }
 
 const LY: u16 = 0xFF44;
@@ -38,21 +57,29 @@ const STAT_HBLANK_IRQ_BIT: u8       = 3;
 impl Ppu {
     pub fn new() -> Self {
         Self{
+            screen_buffer: [0; DISPLAY_BUFFER],
             mode: Lcd::new(),
             tiles: [Tile::new(); NUM_TILES],
             maps: [0; TILE_MAP_SIZE],
             lcd_regs: [0; LCD_REG_SIZE],
+            oam: [Sprite::new(); NUM_OAM_SPRITES],
         }
     }
 
     pub fn update(&mut self, cycles: u8) -> PpuUpdateResult {
         let old_mode = self.mode.get_mode();
+        let old_line = self.mode.get_line();
         let lcd_result = self.mode.step(cycles);
         let mut stat = self.read_lcd_reg(STAT);
         let mut irq = false;
 
         let scanline = self.mode.get_line();
-        self.write_lcd_reg(LY, scanline);
+        if old_line != scanline {
+            let lyc = self.read_lcd_reg(LYC);
+            stat.set_bit(STAT_LY_EQ_LYC_BIT, scanline == lyc);
+            irq = (scanline == lyc) && stat.get_bit(STAT_LY_LYC_IRQ_BIT);
+            self.write_lcd_reg(LY, scanline);
+        }
 
         let mode = self.mode.get_mode();
         if old_mode != mode {
@@ -65,7 +92,7 @@ impl Ppu {
                 },
                 LcdModeType::OAMReadMode => {
                     irq |= stat.get_bit(STAT_OAM_IRQ_BIT);
-                },
+                }
                 _ => {},
             }
         }
@@ -74,7 +101,7 @@ impl Ppu {
         stat |= mode.get_idx();
         self.write_lcd_reg(STAT, stat);
 
-        PpuUpdateResult { lcd_result, irq }
+        PpuUpdateResult{ lcd_result, irq }
     }
 
     pub fn read_vram(&self, addr: u16) -> u8 {
@@ -107,6 +134,18 @@ impl Ppu {
             },
             _ => unreachable!(),
         }
+    }
+
+    pub fn read_oam(&self, addr: u16) -> u8 {
+        let relative_addr = addr - OAM_START;
+        let oam_index = relative_addr / BYTES_PER_SPRITE;
+        self.oam[oam_index as usize].read_u8(addr)
+    }
+
+    pub fn write_oam(&mut self, addr: u16, value: u8) {
+        let relative_addr = addr - OAM_START;
+        let oam_index = relative_addr / BYTES_PER_SPRITE;
+        self.oam[oam_index as usize].write_u8(addr, value);
     }
 }
 
@@ -223,43 +262,151 @@ impl Ppu {
     }
 
     pub fn render(&self) -> [u8; DISPLAY_BUFFER] {
-        let mut result = [0xFF; DISPLAY_BUFFER];
-
-        if self.is_bg_layer_displayed() {
-            self.render_bg(&mut result);
-        }
-        result
+       if self.is_lcd_enabled() {
+           self.screen_buffer
+       } else {
+           [0; DISPLAY_BUFFER]
+       }
     }
 
-    pub fn render_bg(&self, buffer: &mut [u8]) {
+    pub fn render_scanline(&mut self) {
+        let line = self.read_lcd_reg(LY);
+        let mut row = [0xFF; SCREEN_WIDTH * 4];
+
+        if self.is_bg_layer_displayed() {
+            self.render_bg(&mut row, line);
+        }
+
+        if self.is_window_layer_displayed() {
+            self.render_window(&mut row, line);
+        }
+
+        if self.is_sprite_layer_displayed() {
+            self.render_sprites(&mut row, line);
+        }
+
+        let start_idx = line as usize * SCREEN_WIDTH * 4;
+        let end_idx = (line + 1) as usize * SCREEN_WIDTH * 4;
+        self.screen_buffer[start_idx..end_idx].copy_from_slice(&row);
+    }
+
+    fn render_sprites(&self, buffer: &mut [u8], line: u8) {
+        let sprites = self.sort_sprites();
+        let bg_palette = self.get_bg_palette();
+        let is_8x16 = self.are_sprites_8x16();
+        for spr in sprites {
+            let height = if is_8x16 { 16 } else { 8 };
+            let coords = spr.get_coords();
+            let signed_line = line as isize;
+            if signed_line < coords.1 || coords.1 + height <= signed_line  {
+                continue
+            }
+            let palette = self.get_sprite_palette(spr.use_palette1() as u8);
+            let behind_bg = spr.get_bg_priority();
+            let y = (signed_line - coords.1) as isize;
+            let y_flipped = spr.is_y_flipped();
+            let spr_idx = if is_8x16 {
+                if (y < 8 && !y_flipped) || (8 < y && y_flipped) {
+                    spr.get_tile_num() & 0xFE
+                } else {
+                    spr.get_tile_num() | 0x01
+                }
+            } else {
+                spr.get_tile_num()
+            };
+            let tile = self.tiles[spr_idx as usize];
+            let screen_y = y + coords.1;
+            if screen_y < 0 || screen_y >= SCREEN_HEIGHT as isize {
+                continue;
+            }
+            let mut data_y = if y_flipped { height - y - 1 } else { y };
+            data_y %= 8;
+            let row = tile.get_row(data_y as u8);
+            for x in 0..8 {
+                let data_x = if spr.is_x_flipped() { 7 - x } else { x };
+                let cell = row[data_x as usize];
+                if cell == 0 {
+                    continue;
+                }
+                let screen_x = x + coords.0;
+                if screen_x < 0 || screen_x >= SCREEN_WIDTH as isize {
+                    continue;
+                }
+                let buffer_idx = 4 * (screen_x as usize);
+                let current_rgba = &buffer[buffer_idx..(buffer_idx + 4)];
+                if behind_bg && current_rgba != GB_PALETTE[bg_palette[0] as usize] {
+                    continue;
+                }
+                let color_idx = palette[cell as usize];
+                let color = GB_PALETTE[color_idx as usize];
+                for i in 0..4 {
+                    buffer[buffer_idx + i] = color[i];
+                }
+            }
+        }
+    }
+
+    fn sort_sprites(&self) -> Vec<Sprite> {
+        let mut sprites = self.oam.to_vec();
+        sprites.reverse();
+        sprites.sort_by(|a, b| b.get_coords().0.cmp(&a.get_coords().0));
+        sprites
+    }
+
+    pub fn render_bg(&self, buffer: &mut [u8], line: u8) {
         let map_offset = self.get_bg_tile_map_idx() as usize * TILE_MAP_TABLE_SIZE;
         let palette = self.get_bg_palette();
-        for ty in 0..NUM_TILE_ROWS {
-            for tx in 0..NUM_TILE_COLS {
-                let map_num = ty * LAYER_WIDTH + tx;
-                let tile_index = self.maps[map_offset + map_num] as usize;
-                let adjusted_tile_index = if self.get_bg_window_tile_set_idx() == 1 {
-                    tile_index as usize
-                } else {
-                    (256 + tile_index as i8 as isize) as usize
-                };
-                let tile = self.tiles[adjusted_tile_index];
+        let viewport = self.get_viewport_coord();
+        let current_y = viewport.y as usize + line as usize;
+        let y = current_y % MAP_PIXELS;
+        let row = current_y % TILE_SIZE;
+        for px in 0..SCREEN_WIDTH {
+            let current_x = viewport.x as usize + px as usize;
+            let x = current_x % MAP_PIXELS;
+            let col = current_x % TILE_SIZE;
+            let map_num = (y / TILE_SIZE) * LAYER_SIZE + (x / TILE_SIZE);
+            let tile_index = self.maps[map_offset + map_num] as usize;
+            let adjusted_tile_index = if self.get_bg_window_tile_set_idx() == 1 {
+                tile_index as usize
+            } else {
+                (256 + tile_index as i8 as isize) as usize
+            };
+            let tile = self.tiles[adjusted_tile_index];
+            let data = tile.get_row(row as u8);
+            let cell = data[col];
+            let color_idx = palette[cell as usize];
+            let color = GB_PALETTE[color_idx as usize];
+            for i in 0..4 {
+                buffer[4 * px + i] = color[i];
+            }
+        }
+    }
 
-                for y in 0..8 {
-                    let row = tile.get_row(y);
-                    let pixel_y = 8 * ty + (y as usize);
-                    for x in 0..8 {
-                        let pixel_x = 8 * tx + x;
-                        let cell = row[x];
-                        let color_idx = palette[cell as usize];
-                        let color = GB_PALETTE[color_idx as usize];
-                        let buffer_idx = 4 * (pixel_y * SCREEN_WIDTH + pixel_x);
-                        for i in 0..4 {
-                            buffer[buffer_idx + i] = color[i];
-                        }
-                    }
-                }
-
+    fn render_window(&self, buffer: &mut [u8], line: u8) {
+        let map_offset = self.get_wndw_tile_map_idx() as usize * TILE_MAP_TABLE_SIZE;
+        let palette = self.get_bg_palette();
+        let coords = self.get_window_coord();
+        if (coords.x as usize > SCREEN_WIDTH) || (coords.y > line) {
+            return;
+        }
+        let y = (line - coords.y) as usize;
+        let row = y % TILE_SIZE;
+        for x in (coords.x as usize)..SCREEN_WIDTH {
+            let col = x % TILE_SIZE;
+            let map_num = (y / TILE_SIZE) * LAYER_SIZE + (x / TILE_SIZE);
+            let tile_index = self.maps[map_offset + map_num] as usize;
+            let adjusted_tile_index = if self.get_bg_window_tile_set_idx() == 1 {
+                tile_index as usize
+            } else {
+                (256 + tile_index as i8 as isize) as usize
+            };
+            let tile = self.tiles[adjusted_tile_index];
+            let data = tile.get_row(row as u8);
+            let cell = data[col];
+            let color_idx = palette[cell as usize];
+            let color = GB_PALETTE[color_idx as usize];
+            for i in 0..4 {
+                buffer[4 * x + i] = color[i];
             }
         }
     }

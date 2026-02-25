@@ -2,6 +2,7 @@ pub mod opcodes;
 
 use crate::utils::*;
 use crate::bus::Bus;
+use crate::io::Button;
 use crate::ppu::modes::LcdResults;
 
 pub struct Cpu {
@@ -18,6 +19,9 @@ pub struct Cpu {
     irq_enabled: bool,
     halted: bool,
     bus: Bus,
+    last_read: Option<u16>,
+    last_write: Option<u16>,
+    dirty_battery: bool,
 }
 
 const IRQ_PRIORITIES: [Interrupts; 5] = [
@@ -44,6 +48,9 @@ impl Cpu {
             irq_enabled: false,
             halted: false,
             bus: Bus::new(),
+            last_read: None,
+            last_write: None,
+            dirty_battery: false,
         };
 
         cpu.write_ram(0xFF10, 0x80);
@@ -67,6 +74,22 @@ impl Cpu {
         cpu.write_ram(0xFF49, 0xFF);
 
         cpu
+    }
+
+    pub fn clean_battery(&mut self) {
+        self.dirty_battery = false;
+    }
+
+    pub fn is_battery_dirty(&self) -> bool {
+        self.dirty_battery
+    }
+
+    pub fn has_battery(&self) -> bool {
+        self.bus.has_battery()
+    }
+
+    pub fn get_title(&self) -> &str {
+        self.bus.get_title()
     }
 
     pub fn get_r8(&self, r: Registers) -> u8 {
@@ -130,8 +153,8 @@ impl Cpu {
                 self.set_r8(Registers::E, low);
             }
             Registers16::HL => {
-                self.set_r8(Registers::H, low);
-                self.set_r8(Registers::L, high);
+                self.set_r8(Registers::H, high);
+                self.set_r8(Registers::L, low);
             }
             Registers16::SP => self.sp = value,
         }
@@ -140,9 +163,9 @@ impl Cpu {
     pub fn get_flag(&self, flag: Flags) -> bool {
         match flag {
             Flags::Z => (self.f & 0b1000_0000) != 0,
-            Flags::S => (self.b & 0b0100_0000) != 0,
-            Flags::HC => (self.c & 0b0010_0000) != 0,
-            Flags::C => (self.d & 0b0001_0000) != 0,
+            Flags::S => (self.f & 0b0100_0000) != 0,
+            Flags::HC => (self.f & 0b0010_0000) != 0,
+            Flags::C => (self.f & 0b0001_0000) != 0,
         }
     }
 
@@ -150,23 +173,23 @@ impl Cpu {
         if value {
             match flag {
                 Flags::Z => self.f |= 0b1000_0000,
-                Flags::S => self.b |= 0b0100_0000,
-                Flags::HC => self.c |= 0b0010_0000,
-                Flags::C => self.d |= 0b0001_0000,
+                Flags::S => self.f |= 0b0100_0000,
+                Flags::HC => self.f |= 0b0010_0000,
+                Flags::C => self.f |= 0b0001_0000,
             }
         } else {
             match flag {
                 Flags::Z => self.f &= 0b0111_0000,
-                Flags::S => self.b &= 0b1011_0000,
-                Flags::HC => self.c &= 0b1101_0000,
-                Flags::C => self.d &= 0b1110_0000,
+                Flags::S => self.f &= 0b1011_0000,
+                Flags::HC => self.f &= 0b1101_0000,
+                Flags::C => self.f &= 0b1110_0000,
             }
         }
     }
 
     pub fn fetch(&mut self) -> u8 {
         let value = self.read_ram(self.pc);
-        self.pc += 1;
+        self.pc = self.pc.wrapping_add(1);
         value
     }
 
@@ -182,7 +205,16 @@ impl Cpu {
     }
 
     pub fn write_ram(&mut self, address: u16, value: u8) {
-        self.bus.write_ram(address, value);
+        self.last_write = Some(address);
+        self.dirty_battery |= self.bus.write_ram(address, value);
+    }
+
+    pub fn get_battery_data(&self) -> &[u8] {
+        self.bus.get_battery_data()
+    }
+
+    pub fn set_battery_data(&mut self, data: &[u8]) {
+        self.bus.set_battery_data(data);
     }
 
     pub fn inc_r16(&mut self, r: Registers16) {
@@ -316,16 +348,16 @@ impl Cpu {
     pub fn pop(&mut self) -> u16 {
         assert_ne!(self.sp, 0xFFFE, "Stack mustn't be empty when trying to pop!");
         let low = self.read_ram(self.sp);
-        let high = self.read_ram(self.sp+1);
+        let high = self.read_ram(self.sp.wrapping_add(1));
         let value = merge_bytes(high, low);
-        self.sp += 2;
+        self.sp = self.sp.wrapping_add(2);
         value
     }
 
     pub fn push(&mut self, value: u16) {
-        self.sp -= 2;
+        self.sp = self.sp.wrapping_sub(2);
         self.write_ram(self.sp, value.low_byte());
-        self.write_ram(self.sp, value.high_byte());
+        self.write_ram(self.sp.wrapping_add(1), value.high_byte());
     }
 
     pub fn get_pc(&self) -> u16 {
@@ -428,19 +460,30 @@ impl Cpu {
     }
 
     pub fn tick(&mut self) -> bool {
+        self.last_read = None;
+        self.last_write = None;
         let mut draw_time = false;
-        let cycles = if self.halted {1} else { opcodes::execute(self) };
+        let cycles = if self.halted { 1 } else { opcodes::execute(self) };
         let ppu_result = self.bus.update_ppu(cycles);
         if ppu_result.irq {
             self.enable_irq_type(Interrupts::Stat, true);
         }
         match ppu_result.lcd_result {
             LcdResults::RenderFrame => {
+                self.bus.render_scanline();
                 self.enable_irq_type(Interrupts::Vblank, true);
                 draw_time = true;
             },
-            _ => {},
+            LcdResults::RenderLine => {
+                self.bus.render_scanline();
+            },
+            _ => {}
         }
+        let timer_irq = self.bus.update_timer(cycles);
+        if timer_irq {
+            self.enable_irq_type(Interrupts::Timer, true);
+        }
+
         if let Some(irq) = self.check_irq() {
             self.trigger_irq(irq);
         }
@@ -495,6 +538,11 @@ impl Cpu {
 
     pub fn render(&self) -> [u8; DISPLAY_BUFFER] {
         self.bus.render()
+    }
+
+    pub fn press_button(&mut self, button: Button, pressed: bool) {
+        self.bus.press_button(button, pressed);
+        self.enable_irq_type(Interrupts::Joypad, true);
     }
 }
 

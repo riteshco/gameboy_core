@@ -82,6 +82,7 @@ impl Lcd {
                 if self.cycles >= VRAM_READ_LEN {
                     self.cycles = 0;
                     self.mode = LcdModeType::HBLANK;
+                    results = LcdResults::RenderLine;
                 }
             }
         }
@@ -93,8 +94,9 @@ impl Lcd {
 const VBLANK_LINE_START: u8 = 143;
 const VBLANK_LINE_END: u8 = VBLANK_LINE_START + 10;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum LcdResults {
     NoAction,
     RenderFrame,
+    RenderLine,
 }
