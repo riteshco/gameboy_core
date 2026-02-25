@@ -143,15 +143,15 @@ impl Bus {
     pub fn get_title(&self) -> &str {
         self.rom.get_title()
     }
-    
+
     pub fn get_battery_data(&self) -> &[u8] {
         self.rom.get_battery_data()
     }
-    
+
     pub fn has_battery(&self) -> bool {
         self.rom.has_battery()
     }
-    
+
     pub fn set_battery_data(&mut self, data: &[u8]) {
         self.rom.set_battery_data(data);
     }

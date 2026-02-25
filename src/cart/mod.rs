@@ -118,6 +118,9 @@ impl Cart {
     }
 
     pub fn read_ram(&self, addr: u16) -> u8 {
+        if self.ram.is_empty() {
+            return 0xFF;
+        }
         match self.mbc {
             MBC::NONE | MBC::MBC1 | MBC::MBC2 | MBC::MBC5 => {
                 self.read_ram_helper(addr)
@@ -130,7 +133,7 @@ impl Cart {
     }
 
     fn mbc3_read_ram(&self, addr: u16) -> u8 {
-        if self.rtc.is_enabled() && (0x08 >= self.ram_bank && self.ram_bank <= 0x0C) {
+        if self.rtc.is_enabled() && (0x08 <= self.ram_bank && self.ram_bank <= 0x0C) {
             self.rtc.read_byte(self.ram_bank)
         } else {
             self.read_ram_helper(addr)
@@ -144,6 +147,9 @@ impl Cart {
     }
 
     pub fn write_ram(&mut self, addr: u16, value: u8) {
+        if self.ram.is_empty() {
+            return;
+        }
         match self.mbc {
             MBC::NONE => {
                 let relative_addr = addr - EXT_RAM_START;
@@ -289,11 +295,11 @@ impl Cart {
             _ => unreachable!()
         }
     }
-    
+
     pub fn get_battery_data(&self) -> &[u8] {
         &self.ram
     }
-    
+
     pub fn set_battery_data(&mut self, data: &[u8]) {
         self.ram.copy_from_slice(data);
     }

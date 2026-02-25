@@ -153,8 +153,8 @@ impl Cpu {
                 self.set_r8(Registers::E, low);
             }
             Registers16::HL => {
-                self.set_r8(Registers::H, low);
-                self.set_r8(Registers::L, high);
+                self.set_r8(Registers::H, high);
+                self.set_r8(Registers::L, low);
             }
             Registers16::SP => self.sp = value,
         }
