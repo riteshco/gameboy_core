@@ -86,7 +86,7 @@ impl Cpu {
 
     pub fn has_battery(&self) -> bool {
         self.bus.has_battery()
-    }gi
+    }
 
     pub fn get_title(&self) -> &str {
         self.bus.get_title()

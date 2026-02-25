@@ -42,7 +42,7 @@ impl Timer {
     pub fn write_timer(&mut self, addr: u16, value: u8) {
         match addr {
             DIV => {
-                self.div = value
+                self.div = 0;
             },
             TIMA => {
                 self.tima = value;

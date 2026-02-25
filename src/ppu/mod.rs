@@ -28,6 +28,11 @@ pub const OAM_STOP: u16 = 0xFE9F;
 const NUM_OAM_SPRITES: usize = 40;
 const BYTES_PER_SPRITE: u16 = 4;
 
+const STAT_LY_EQ_LYC_BIT: u8 = 2;
+const STAT_LY_LYC_IRQ_BIT: u8 = 6;
+
+const LYC: u16 = 0xFF45;
+
 pub struct PpuUpdateResult {
     pub lcd_result: LcdResults,
     pub irq: bool,
@@ -63,12 +68,18 @@ impl Ppu {
 
     pub fn update(&mut self, cycles: u8) -> PpuUpdateResult {
         let old_mode = self.mode.get_mode();
+        let old_line = self.mode.get_line();
         let lcd_result = self.mode.step(cycles);
         let mut stat = self.read_lcd_reg(STAT);
         let mut irq = false;
 
         let scanline = self.mode.get_line();
-        self.write_lcd_reg(LY, scanline);
+        if old_line != scanline {
+            let lyc = self.read_lcd_reg(LYC);
+            stat.set_bit(STAT_LY_EQ_LYC_BIT, scanline == lyc);
+            irq = (scanline == lyc) && stat.get_bit(STAT_LY_LYC_IRQ_BIT);
+            self.write_lcd_reg(LY, scanline);
+        }
 
         let mode = self.mode.get_mode();
         if old_mode != mode {
@@ -81,7 +92,7 @@ impl Ppu {
                 },
                 LcdModeType::OAMReadMode => {
                     irq |= stat.get_bit(STAT_OAM_IRQ_BIT);
-                },
+                }
                 _ => {},
             }
         }
@@ -90,7 +101,7 @@ impl Ppu {
         stat |= mode.get_idx();
         self.write_lcd_reg(STAT, stat);
 
-        PpuUpdateResult { lcd_result, irq }
+        PpuUpdateResult{ lcd_result, irq }
     }
 
     pub fn read_vram(&self, addr: u16) -> u8 {
@@ -262,7 +273,7 @@ impl Ppu {
         let line = self.read_lcd_reg(LY);
         let mut row = [0xFF; SCREEN_WIDTH * 4];
 
-        if self.is_sprite_layer_displayed() {
+        if self.is_bg_layer_displayed() {
             self.render_bg(&mut row, line);
         }
 

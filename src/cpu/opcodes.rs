@@ -1220,7 +1220,7 @@ fn add_e8(cpu: &mut Cpu) -> u8 {
     cpu.set_flag(Flags::S, false);
     cpu.set_flag(Flags::HC, set_h);
     cpu.set_flag(Flags::C, set_c);
-    2
+    4
 }
 
 //ADC A, u8 (Z0HC)
