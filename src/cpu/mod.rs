@@ -21,6 +21,7 @@ pub struct Cpu {
     bus: Bus,
     last_read: Option<u16>,
     last_write: Option<u16>,
+    dirty_battery: bool,
 }
 
 const IRQ_PRIORITIES: [Interrupts; 5] = [
@@ -49,6 +50,7 @@ impl Cpu {
             bus: Bus::new(),
             last_read: None,
             last_write: None,
+            dirty_battery: false,
         };
 
         cpu.write_ram(0xFF10, 0x80);
@@ -73,6 +75,18 @@ impl Cpu {
 
         cpu
     }
+
+    pub fn clean_battery(&mut self) {
+        self.dirty_battery = false;
+    }
+
+    pub fn is_battery_dirty(&self) -> bool {
+        self.dirty_battery
+    }
+
+    pub fn has_battery(&self) -> bool {
+        self.bus.has_battery()
+    }gi
 
     pub fn get_title(&self) -> &str {
         self.bus.get_title()
@@ -191,7 +205,16 @@ impl Cpu {
     }
 
     pub fn write_ram(&mut self, address: u16, value: u8) {
-        self.bus.write_ram(address, value);
+        self.last_write = Some(address);
+        self.dirty_battery |= self.bus.write_ram(address, value);
+    }
+
+    pub fn get_battery_data(&self) -> &[u8] {
+        self.bus.get_battery_data()
+    }
+
+    pub fn set_battery_data(&mut self, data: &[u8]) {
+        self.bus.set_battery_data(data);
     }
 
     pub fn inc_r16(&mut self, r: Registers16) {

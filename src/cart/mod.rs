@@ -289,6 +289,14 @@ impl Cart {
             _ => unreachable!()
         }
     }
+    
+    pub fn get_battery_data(&self) -> &[u8] {
+        &self.ram
+    }
+    
+    pub fn set_battery_data(&mut self, data: &[u8]) {
+        self.ram.copy_from_slice(data);
+    }
 }
 
 const RAM_SIZES: [usize; 6] = [

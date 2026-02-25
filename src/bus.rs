@@ -68,7 +68,8 @@ impl Bus {
     }
 
 
-    pub fn write_ram(&mut self, addr: u16, value: u8) {
+    pub fn write_ram(&mut self, addr: u16, value: u8) -> bool {
+        let mut battery_write = false;
         if addr == 0xFF40 {
             if (value & 0x80) != 0 {
                 println!("LCD IS ON! LCDC: {:02X}", value);
@@ -85,6 +86,7 @@ impl Bus {
             },
             EXT_RAM_START..=EXT_RAM_STOP => {
                 self.rom.write_ram(addr, value);
+                battery_write = true;
             }
             WRAM_START..=ECHO_STOP => {
                 self.wram.write_u8(addr, value);
@@ -107,6 +109,7 @@ impl Bus {
             },
             _ => {}
         }
+        battery_write
     }
 
     pub fn load_rom(&mut self, data: &[u8]) {
@@ -139,5 +142,17 @@ impl Bus {
 
     pub fn get_title(&self) -> &str {
         self.rom.get_title()
+    }
+    
+    pub fn get_battery_data(&self) -> &[u8] {
+        self.rom.get_battery_data()
+    }
+    
+    pub fn has_battery(&self) -> bool {
+        self.rom.has_battery()
+    }
+    
+    pub fn set_battery_data(&mut self, data: &[u8]) {
+        self.rom.set_battery_data(data);
     }
 }
