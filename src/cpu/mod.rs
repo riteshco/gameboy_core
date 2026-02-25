@@ -74,6 +74,10 @@ impl Cpu {
         cpu
     }
 
+    pub fn get_title(&self) -> &str {
+        self.bus.get_title()
+    }
+
     pub fn get_r8(&self, r: Registers) -> u8 {
         match r {
             Registers::A => self.a,

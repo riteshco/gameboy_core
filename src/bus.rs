@@ -1,4 +1,4 @@
-use crate::cart::{Cart, ROM_START , ROM_STOP};
+use crate::cart::{Cart, EXT_RAM_START, EXT_RAM_STOP, ROM_START, ROM_STOP};
 use crate::cpu::Registers16;
 use crate::ppu::{Ppu, VRAM_START, VRAM_END, PpuUpdateResult, LCD_REG_START, LCD_REG_END, OAM_START, OAM_STOP};
 use crate::utils::DISPLAY_BUFFER;
@@ -38,6 +38,9 @@ impl Bus {
             VRAM_START..=VRAM_END => {
                 self.ppu.read_vram(addr)
             },
+            EXT_RAM_START..=EXT_RAM_STOP => {
+                self.rom.read_ram(addr)
+            }
             WRAM_START..=ECHO_STOP => {
                 self.wram.read_u8(addr)
             },
@@ -80,6 +83,9 @@ impl Bus {
             VRAM_START..=VRAM_END => {
                 self.ppu.write_vram(addr, value);
             },
+            EXT_RAM_START..=EXT_RAM_STOP => {
+                self.rom.write_ram(addr, value);
+            }
             WRAM_START..=ECHO_STOP => {
                 self.wram.write_u8(addr, value);
             },
@@ -129,5 +135,9 @@ impl Bus {
 
     pub fn render_scanline(&mut self) {
         self.ppu.render_scanline();
+    }
+
+    pub fn get_title(&self) -> &str {
+        self.rom.get_title()
     }
 }
