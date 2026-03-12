@@ -70,13 +70,6 @@ impl Bus {
 
     pub fn write_ram(&mut self, addr: u16, value: u8) -> bool {
         let mut battery_write = false;
-        if addr == 0xFF40 {
-            if (value & 0x80) != 0 {
-                println!("LCD IS ON! LCDC: {:02X}", value);
-            } else {
-                println!("LCD IS OFF! LCDC: {:02X}", value);
-            }
-        }
         match addr {
             ROM_START..=ROM_STOP => {
                 self.rom.write_cart(addr, value);
